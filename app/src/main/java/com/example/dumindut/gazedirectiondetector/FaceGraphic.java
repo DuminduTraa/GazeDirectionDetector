@@ -11,10 +11,7 @@ import com.example.dumindut.gazedirectiondetector.ui.camera.GraphicOverlay;
 import com.google.android.gms.vision.face.Face;
 import com.google.android.gms.vision.face.Landmark;
 
-/**
- * Graphic instance for rendering face position, orientation, and landmarks within an associated
- * graphic overlay view.
- */
+/*Graphic instance for rendering face position, orientation, and landmarks within an associated graphic overlay view.*/
 class FaceGraphic extends GraphicOverlay.Graphic {
     private static final float FACE_POSITION_RADIUS = 10.0f;
     private static final float ID_TEXT_SIZE = 40.0f;
@@ -64,18 +61,12 @@ class FaceGraphic extends GraphicOverlay.Graphic {
     }
 
 
-    /**
-     * Updates the face instance from the detection of the most recent frame.  Invalidates the
-     * relevant portions of the overlay to trigger a redraw.
-     */
+
     void updateFace(Face face) {
         mFace = face;
         postInvalidate();
     }
 
-    /**
-     * Draws the face annotations for position on the supplied canvas.
-     */
     @Override
     public void draw(Canvas canvas) {
         Face face = mFace;

@@ -60,8 +60,6 @@ class FaceGraphic extends GraphicOverlay.Graphic {
         mFaceId = id;
     }
 
-
-
     void updateFace(Face face) {
         mFace = face;
         postInvalidate();

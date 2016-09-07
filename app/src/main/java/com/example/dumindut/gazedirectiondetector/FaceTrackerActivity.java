@@ -16,6 +16,7 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
@@ -42,14 +43,23 @@ public final class FaceTrackerActivity extends AppCompatActivity {
     // permission request codes need to be < 256
     private static final int RC_HANDLE_CAMERA_PERM = 2;
 
+    private boolean mIsFrontFacing = true;
+
 
     @Override
-    public void onCreate(Bundle icicle) {
-        super.onCreate(icicle);
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
 
         mPreview = (CameraSourcePreview) findViewById(R.id.preview);
         mGraphicOverlay = (GraphicOverlay) findViewById(R.id.faceOverlay);
+
+        final Button button = (Button) findViewById(R.id.flipButton);
+        button.setOnClickListener(mFlipButtonListener);
+
+        if (savedInstanceState != null) {
+            mIsFrontFacing = savedInstanceState.getBoolean("IsFrontFacing");
+        }
 
 
         int rc = ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA);
@@ -105,9 +115,14 @@ public final class FaceTrackerActivity extends AppCompatActivity {
             Log.w(TAG, "Face detector dependencies are not yet available.");
         }
 
+        int facing = CameraSource.CAMERA_FACING_FRONT;
+        if (!mIsFrontFacing) {
+            facing = CameraSource.CAMERA_FACING_BACK;
+        }
+
         mCameraSource = new CameraSource.Builder(context, detector)
                 .setRequestedPreviewSize(1280,720)
-                .setFacing(CameraSource.CAMERA_FACING_FRONT)
+                .setFacing(facing)
                 .setRequestedFps(30.0f)
                 .build();
     }
@@ -163,6 +178,34 @@ public final class FaceTrackerActivity extends AppCompatActivity {
                 .setPositiveButton(R.string.ok, listener)
                 .show();
     }
+
+    /**
+     * Saves the camera facing mode, so that it can be restored after the device is rotated.
+     */
+    @Override
+    public void onSaveInstanceState(Bundle savedInstanceState) {
+        super.onSaveInstanceState(savedInstanceState);
+        savedInstanceState.putBoolean("IsFrontFacing", mIsFrontFacing);
+    }
+
+
+    /**
+     * Toggles between front-facing and rear-facing modes.
+     */
+    private View.OnClickListener mFlipButtonListener = new View.OnClickListener() {
+        public void onClick(View v) {
+            mIsFrontFacing = !mIsFrontFacing;
+
+            if (mCameraSource != null) {
+                mCameraSource.release();
+                mCameraSource = null;
+            }
+
+            createCameraSource();
+            startCameraSource();
+        }
+    };
+
 
     private void startCameraSource() {
 

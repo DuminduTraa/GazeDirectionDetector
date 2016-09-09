@@ -74,14 +74,14 @@ class FaceGraphic extends GraphicOverlay.Graphic {
 
         float x = translateX(face.getPosition().x + face.getWidth() / 2);
         float y = translateY(face.getPosition().y + face.getHeight() / 2);
-        /*canvas.drawCircle(x, y, FACE_POSITION_RADIUS, mFacePositionPaint);*/
+        canvas.drawCircle(x, y, FACE_POSITION_RADIUS, mFacePositionPaint);
 
         canvas.drawText("id: " + mFaceId, x + ID_X_OFFSET, y + ID_Y_OFFSET, mIdPaint);
         /*canvas.drawText("right eye: " + String.format("%.2f", face.getIsRightEyeOpenProbability()), x + ID_X_OFFSET * 2, y + ID_Y_OFFSET * 2, mIdPaint);
         canvas.drawText("left eye: " + String.format("%.2f", face.getIsLeftEyeOpenProbability()), x - ID_X_OFFSET*2, y - ID_Y_OFFSET*2, mIdPaint);*/
 
-        canvas.drawText("rotationY: " + String.format("%.2f", face.getEulerY()), 50,50, mIdPaint);
-        canvas.drawText("rotationZ: " + String.format("%.2f", face.getEulerZ()), 50,100, mIdPaint);
+        canvas.drawText("rotationY: " + String.format("%.2f", face.getEulerY()), x-100,y-150, mIdPaint);
+        canvas.drawText("rotationZ: " + String.format("%.2f", face.getEulerZ()), x-100,y-100, mIdPaint);
 
         for (Landmark landmark : face.getLandmarks()) {
             if (landmark.getType() == Landmark.RIGHT_EYE) {
@@ -109,7 +109,12 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                 float cy = translateY(landmark.getPosition().y);
                 canvas.drawCircle(cx, cy, FACE_POSITION_RADIUS, mFacePositionPaint);
             }
-            else if (landmark.getType() == Landmark.BOTTOM_MOUTH) {
+            else if (landmark.getType() == Landmark.LEFT_MOUTH) {
+                float cx = translateX(landmark.getPosition().x);
+                float cy = translateY(landmark.getPosition().y);
+                canvas.drawCircle(cx, cy, FACE_POSITION_RADIUS, mFacePositionPaint);
+            }
+            else if (landmark.getType() == Landmark.RIGHT_MOUTH) {
                 float cx = translateX(landmark.getPosition().x);
                 float cy = translateY(landmark.getPosition().y);
                 canvas.drawCircle(cx, cy, FACE_POSITION_RADIUS, mFacePositionPaint);

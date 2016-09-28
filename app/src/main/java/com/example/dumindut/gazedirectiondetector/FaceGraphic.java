@@ -13,7 +13,7 @@ import com.google.android.gms.vision.face.Landmark;
 
 /*Graphic instance for rendering face position, orientation, and landmarks within an associated graphic overlay view.*/
 class FaceGraphic extends GraphicOverlay.Graphic {
-    private static final float FACE_POSITION_RADIUS = 10.0f;
+    private static final float FACE_POSITION_RADIUS = 5.0f;
     private static final float ID_TEXT_SIZE = 40.0f;
     private static final float ID_Y_OFFSET = 50.0f;
     private static final float ID_X_OFFSET = -50.0f;
@@ -115,6 +115,31 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                 canvas.drawCircle(cx, cy, FACE_POSITION_RADIUS, mFacePositionPaint);
             }
             else if (landmark.getType() == Landmark.RIGHT_MOUTH) {
+                float cx = translateX(landmark.getPosition().x);
+                float cy = translateY(landmark.getPosition().y);
+                canvas.drawCircle(cx, cy, FACE_POSITION_RADIUS, mFacePositionPaint);
+            }
+            else if (landmark.getType() == Landmark.BOTTOM_MOUTH) {
+                float cx = translateX(landmark.getPosition().x);
+                float cy = translateY(landmark.getPosition().y);
+                canvas.drawCircle(cx, cy, FACE_POSITION_RADIUS, mFacePositionPaint);
+            }
+            else if (landmark.getType() == Landmark.LEFT_EAR) {
+                float cx = translateX(landmark.getPosition().x);
+                float cy = translateY(landmark.getPosition().y);
+                canvas.drawCircle(cx, cy, FACE_POSITION_RADIUS, mFacePositionPaint);
+            }
+            else if (landmark.getType() == Landmark.LEFT_EAR_TIP) {
+                float cx = translateX(landmark.getPosition().x);
+                float cy = translateY(landmark.getPosition().y);
+                canvas.drawCircle(cx, cy, FACE_POSITION_RADIUS, mFacePositionPaint);
+            }
+            else if (landmark.getType() == Landmark.RIGHT_EAR) {
+                float cx = translateX(landmark.getPosition().x);
+                float cy = translateY(landmark.getPosition().y);
+                canvas.drawCircle(cx, cy, FACE_POSITION_RADIUS, mFacePositionPaint);
+            }
+            else if (landmark.getType() == Landmark.RIGHT_EAR_TIP) {
                 float cx = translateX(landmark.getPosition().x);
                 float cy = translateY(landmark.getPosition().y);
                 canvas.drawCircle(cx, cy, FACE_POSITION_RADIUS, mFacePositionPaint);

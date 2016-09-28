@@ -229,7 +229,10 @@ public final class FaceTrackerActivity extends AppCompatActivity {
         }
     }
 
+    /* Graphic Face Tracker */
 
+    /*Factory for creating a face tracker to track a face. The multiprocessor
+    * uses this factory to create faceTrackers for each face.*/
     private class GraphicFaceTrackerFactory implements MultiProcessor.Factory<Face> {
         @Override
         public Tracker<Face> create(Face face) {
@@ -237,6 +240,8 @@ public final class FaceTrackerActivity extends AppCompatActivity {
         }
     }
 
+    /*Face tracker for each face, maintaining a face graphic within the app's
+    * associated face overlay*/
     private class GraphicFaceTracker extends Tracker<Face> {
         private GraphicOverlay mOverlay;
         private FaceGraphic mFaceGraphic;
@@ -246,22 +251,27 @@ public final class FaceTrackerActivity extends AppCompatActivity {
             mFaceGraphic = new FaceGraphic(overlay);
         }
 
+        /*Start tracking the detected face instane within the face overlay.*/
         @Override
         public void onNewItem(int faceId, Face item) {
             mFaceGraphic.setId(faceId);
         }
 
+        /*Update the position and characteristics of the face within the overlay*/
         @Override
         public void onUpdate(FaceDetector.Detections<Face> detectionResults, Face face) {
             mOverlay.add(mFaceGraphic);
             mFaceGraphic.updateFace(face);
         }
 
+        /*Hides the graphic when the face is not detected.*/
         @Override
         public void onMissing(FaceDetector.Detections<Face> detectionResults) {
             mOverlay.remove(mFaceGraphic);
         }
 
+        /*Called when the face is assumed to be gone for good. Remove the graphic
+        * annotation from the overlay.*/
         @Override
         public void onDone() {
             mOverlay.remove(mFaceGraphic);

@@ -124,7 +124,9 @@ public final class FaceTrackerActivity extends AppCompatActivity {
                 .setRequestedPreviewSize(1280,720)
                 .setFacing(facing)
                 .setRequestedFps(30.0f)
+                .setAutoFocusEnabled(true)
                 .build();
+
     }
 
      @Override

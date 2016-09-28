@@ -3,6 +3,7 @@ package com.example.dumindut.gazedirectiondetector;
 /**
  * Created by dumindut on 29/8/2016.
  */
+
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -83,7 +84,13 @@ class FaceGraphic extends GraphicOverlay.Graphic {
         canvas.drawText("rotationY: " + String.format("%.2f", face.getEulerY()), x-100,y-150, mIdPaint);
         canvas.drawText("rotationZ: " + String.format("%.2f", face.getEulerZ()), x-100,y-100, mIdPaint);
 
-        for (Landmark landmark : face.getLandmarks()) {
+        for (Landmark landmark : face.getLandmarks()){
+            float cx = translateX(landmark.getPosition().x);
+            float cy = translateY(landmark.getPosition().y);
+            canvas.drawCircle(cx, cy, FACE_POSITION_RADIUS, mFacePositionPaint);
+        }
+
+        /*for (Landmark landmark : face.getLandmarks()) {
             if (landmark.getType() == Landmark.RIGHT_EYE) {
                 float cx = translateX(landmark.getPosition().x);
                 float cy = translateY(landmark.getPosition().y);
@@ -144,7 +151,7 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                 float cy = translateY(landmark.getPosition().y);
                 canvas.drawCircle(cx, cy, FACE_POSITION_RADIUS, mFacePositionPaint);
             }
-        }
+        }*/
 
         // Draws a bounding box around the face.
         float xOffset = scaleX(face.getWidth() / 2.0f);

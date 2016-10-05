@@ -31,4 +31,9 @@
         android:layout_alignParentRight="true"
         android:layout_margin="8dp"/>
 
+    <TextView
+        android:id="@+id/emotion_text_view"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
 </RelativeLayout>

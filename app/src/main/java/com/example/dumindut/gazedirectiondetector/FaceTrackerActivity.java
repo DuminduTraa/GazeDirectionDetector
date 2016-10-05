@@ -3,6 +3,7 @@ package com.example.dumindut.gazedirectiondetector;
 /**
  * Created by dumindut on 29/8/2016.
  */
+
 import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -18,6 +19,8 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 
+import com.example.dumindut.gazedirectiondetector.ui.camera.CameraSourcePreview;
+import com.example.dumindut.gazedirectiondetector.ui.camera.GraphicOverlay;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.vision.CameraSource;
@@ -25,8 +28,6 @@ import com.google.android.gms.vision.MultiProcessor;
 import com.google.android.gms.vision.Tracker;
 import com.google.android.gms.vision.face.Face;
 import com.google.android.gms.vision.face.FaceDetector;
-import com.example.dumindut.gazedirectiondetector.ui.camera.CameraSourcePreview;
-import com.example.dumindut.gazedirectiondetector.ui.camera.GraphicOverlay;
 
 import java.io.IOException;
 
@@ -101,17 +102,21 @@ public final class FaceTrackerActivity extends AppCompatActivity {
     private void createCameraSource() {
 
         Context context = getApplicationContext();
-        FaceDetector detector = new FaceDetector.Builder(context)
+
+        FaceDetector faceDetector = new FaceDetector.Builder(context)
                 .setClassificationType(FaceDetector.ALL_CLASSIFICATIONS)
                 .setLandmarkType (FaceDetector.ALL_LANDMARKS)
                 .setMode(FaceDetector.ACCURATE_MODE)
                 .build();
 
-        detector.setProcessor(
+        EmotionDetector emotionDetector = new EmotionDetector(faceDetector);
+
+        emotionDetector.setProcessor(
                 new MultiProcessor.Builder<>(new GraphicFaceTrackerFactory())
                         .build());
 
-        if (!detector.isOperational()) {
+
+        if (!faceDetector.isOperational()) {
             Log.w(TAG, "Face detector dependencies are not yet available.");
         }
 
@@ -120,13 +125,12 @@ public final class FaceTrackerActivity extends AppCompatActivity {
             facing = CameraSource.CAMERA_FACING_BACK;
         }
 
-        mCameraSource = new CameraSource.Builder(context, detector)
-                .setRequestedPreviewSize(1280,720)
+        mCameraSource = new CameraSource.Builder(context, emotionDetector)
+                .setRequestedPreviewSize(320,240)
                 .setFacing(facing)
-                .setRequestedFps(30.0f)
+                .setRequestedFps(30f)
                 .setAutoFocusEnabled(true)
                 .build();
-
     }
 
      @Override

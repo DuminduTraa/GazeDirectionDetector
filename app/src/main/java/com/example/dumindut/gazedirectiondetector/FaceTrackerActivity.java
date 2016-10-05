@@ -257,6 +257,7 @@ public final class FaceTrackerActivity extends AppCompatActivity {
             mFaceGraphic = new FaceGraphic(overlay);
         }
 
+
         /*Start tracking the detected face instane within the face overlay.*/
         @Override
         public void onNewItem(int faceId, Face item) {

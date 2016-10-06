@@ -46,6 +46,8 @@ public final class FaceTrackerActivity extends AppCompatActivity {
 
     private boolean mIsFrontFacing = true;
 
+    //private EmotionServiceClient client;
+
 
     @Override
     public void onCreate(Bundle savedInstanceState) {

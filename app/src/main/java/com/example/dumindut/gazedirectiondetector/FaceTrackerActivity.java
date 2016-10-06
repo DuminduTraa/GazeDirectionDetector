@@ -28,6 +28,8 @@ import com.google.android.gms.vision.MultiProcessor;
 import com.google.android.gms.vision.Tracker;
 import com.google.android.gms.vision.face.Face;
 import com.google.android.gms.vision.face.FaceDetector;
+import com.microsoft.projectoxford.emotion.EmotionServiceClient;
+import com.microsoft.projectoxford.emotion.EmotionServiceRestClient;
 
 import java.io.IOException;
 
@@ -46,13 +48,17 @@ public final class FaceTrackerActivity extends AppCompatActivity {
 
     private boolean mIsFrontFacing = true;
 
-    //private EmotionServiceClient client;
+    private EmotionServiceClient client;
 
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
+
+        if (client == null) {
+            client = new EmotionServiceRestClient(getString(R.string.subscription_key));
+        }
 
         mPreview = (CameraSourcePreview) findViewById(R.id.preview);
         mGraphicOverlay = (GraphicOverlay) findViewById(R.id.faceOverlay);

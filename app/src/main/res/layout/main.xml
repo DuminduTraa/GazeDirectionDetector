@@ -34,8 +34,7 @@
         android:id="@+id/emotion_text_view"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="dfsdfsdfsdfsadfsdfsdfsdf"
-        android:layout_alignParentRight="true"
+        android:text="0"
         android:textSize="16dp"/>
 
 </RelativeLayout>

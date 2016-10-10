@@ -18,6 +18,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.TextView;
 
 import com.example.dumindut.gazedirectiondetector.ui.camera.CameraSourcePreview;
 import com.example.dumindut.gazedirectiondetector.ui.camera.GraphicOverlay;
@@ -41,6 +42,7 @@ public final class FaceTrackerActivity extends AppCompatActivity {
 
     private CameraSourcePreview mPreview;
     private GraphicOverlay mGraphicOverlay;
+    private TextView textView;
 
     private static final int RC_HANDLE_GMS = 9001;
     // permission request codes need to be < 256
@@ -62,6 +64,7 @@ public final class FaceTrackerActivity extends AppCompatActivity {
 
         mPreview = (CameraSourcePreview) findViewById(R.id.preview);
         mGraphicOverlay = (GraphicOverlay) findViewById(R.id.faceOverlay);
+        textView = (TextView) findViewById(R.id.emotion_text_view);
 
         final Button button = (Button) findViewById(R.id.flipButton);
         button.setOnClickListener(mFlipButtonListener);
@@ -106,7 +109,6 @@ public final class FaceTrackerActivity extends AppCompatActivity {
                 .show();
     }
 
-
     private void createCameraSource() {
 
         Context context = getApplicationContext();
@@ -117,7 +119,7 @@ public final class FaceTrackerActivity extends AppCompatActivity {
                 .setMode(FaceDetector.ACCURATE_MODE)
                 .build();
 
-        EmotionDetector emotionDetector = new EmotionDetector(faceDetector);
+        EmotionDetector emotionDetector = new EmotionDetector(faceDetector,textView, client);
 
         emotionDetector.setProcessor(
                 new MultiProcessor.Builder<>(new GraphicFaceTrackerFactory())

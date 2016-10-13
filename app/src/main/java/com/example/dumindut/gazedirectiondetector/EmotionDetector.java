@@ -15,8 +15,11 @@ import com.microsoft.projectoxford.emotion.contract.RecognizeResult;
 import com.microsoft.projectoxford.emotion.rest.EmotionServiceException;
 
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
+import java.nio.channels.WritableByteChannel;
 import java.util.List;
 
 /**
@@ -25,8 +28,9 @@ import java.util.List;
 public class EmotionDetector extends Detector<Face> {
     private Detector<Face> mDelegate;
     private TextView emotionText;
-    private Bitmap mBitmap;
     private EmotionServiceClient client;
+    private Frame theFrame;
+    private Bitmap mBitmap;
 
     EmotionDetector(Detector<Face> delegate, TextView textView, EmotionServiceClient client1){
         mDelegate = delegate;
@@ -34,10 +38,14 @@ public class EmotionDetector extends Detector<Face> {
         client = client1;
     }
 
+    @Override
     public SparseArray<Face> detect(Frame frame) {
         // *** Custom frame processing code
-        mBitmap = frame.getBitmap();
-        doRecognize();
+
+        //theFrame = frame;
+        //doRecognize();
+        //emotionText.setText('1');
+        //Log.e("emotion","setting text to 1");
 
         return mDelegate.detect(frame);
     }
@@ -50,6 +58,8 @@ public class EmotionDetector extends Detector<Face> {
         return mDelegate.setFocus(id);
     }
 
+
+
     public void doRecognize() {
 
         // Do emotion detection using auto-detected faces.
@@ -59,6 +69,7 @@ public class EmotionDetector extends Detector<Face> {
             emotionText.setText("Error encountered. Exception is: " + e.toString());
         }
     }
+
 
     private class doRequest extends AsyncTask<String, String, List<RecognizeResult>> {
         // Store error message
@@ -83,10 +94,11 @@ public class EmotionDetector extends Detector<Face> {
 
             if (e != null) {
                 emotionText.setText("Error: " + e.getMessage());
+                //Log.e("error","messagesdfsdf");
                 this.e = null;
             } else {
                 if (result.size() == 0) {
-                    emotionText.append("No emotion detected :(");
+                    emotionText.setText("No emotion detected :(");
                 } else {
                     Integer count = 0;
                     String resultText = "";
@@ -103,11 +115,13 @@ public class EmotionDetector extends Detector<Face> {
                         resultText += (String.format("\t face rectangle: %d, %d, %d, %d", r.faceRectangle.left, r.faceRectangle.top, r.faceRectangle.width, r.faceRectangle.height));
                         count++;
                     }
-                    emotionText.setText(resultText);
+                    //emotionText.setText(resultText);
+                    Log.e("result",resultText);
                 }
             }
         }
     }
+
 
     private List<RecognizeResult> processWithAutoFaceDetection() throws EmotionServiceException, IOException {
         Log.d("emotion", "Start emotion detection with auto-face detection");
@@ -115,9 +129,15 @@ public class EmotionDetector extends Detector<Face> {
         Gson gson = new Gson();
 
         // Put the image into an input stream for detection.
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
-        mBitmap.compress(Bitmap.CompressFormat.JPEG, 100, output);
-        ByteArrayInputStream inputStream = new ByteArrayInputStream(output.toByteArray());
+
+        //writeBuffer(theFrame.getGrayscaleImageData(), output1);
+        //ByteArrayOutputStream output = (ByteArrayOutputStream) output1;
+        ByteArrayInputStream inputStream = new ByteArrayInputStream(theFrame.getGrayscaleImageData().array() /*output.toByteArray()*/);
+
+
+        /*ByteArrayOutputStream output = new ByteArrayOutputStream();
+        mbitmap.compress(Bitmap.CompressFormat.JPEG, 100, output);
+        ByteArrayInputStream inputStream = new ByteArrayInputStream(output.toByteArray());*/
 
         // -----------------------------------------------------------------------
         // KEY SAMPLE CODE STARTS HERE
@@ -127,7 +147,7 @@ public class EmotionDetector extends Detector<Face> {
         //
         // Detect emotion by auto-detecting faces in the image.
         //
-        result = this.client.recognizeImage(inputStream);
+        result = client.recognizeImage(inputStream);
 
         String json = gson.toJson(result);
         Log.d("result", json);
@@ -135,6 +155,17 @@ public class EmotionDetector extends Detector<Face> {
         // KEY SAMPLE CODE ENDS HERE
         // -----------------------------------------------------------------------
         return result;
+    }
+
+    private void writeBuffer(ByteBuffer buffer, OutputStream stream) {
+        WritableByteChannel channel = Channels.newChannel(stream);
+        try {
+            channel.write(buffer);
+        } catch (Exception e) {
+            //this.e = e;    // Store error
+        }
+        //return null;
+
     }
 
 }

@@ -1,6 +1,8 @@
 package com.example.dumindut.gazedirectiondetector;
 
-import android.graphics.Bitmap;
+import android.graphics.ImageFormat;
+import android.graphics.Rect;
+import android.graphics.YuvImage;
 import android.os.AsyncTask;
 import android.util.Log;
 import android.util.SparseArray;
@@ -15,11 +17,9 @@ import com.microsoft.projectoxford.emotion.contract.RecognizeResult;
 import com.microsoft.projectoxford.emotion.rest.EmotionServiceException;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.ByteBuffer;
-import java.nio.channels.Channels;
-import java.nio.channels.WritableByteChannel;
 import java.util.List;
 
 /**
@@ -30,9 +30,8 @@ public class EmotionDetector extends Detector<Face> {
     private TextView emotionText;
     private EmotionServiceClient client;
     private Frame theFrame;
-    private Bitmap mBitmap;
 
-    EmotionDetector(Detector<Face> delegate, TextView textView, EmotionServiceClient client1){
+    EmotionDetector(Detector<Face> delegate, TextView textView, EmotionServiceClient client1) {
         mDelegate = delegate;
         emotionText = textView;
         client = client1;
@@ -42,10 +41,9 @@ public class EmotionDetector extends Detector<Face> {
     public SparseArray<Face> detect(Frame frame) {
         // *** Custom frame processing code
 
-        //theFrame = frame;
-        //doRecognize();
-        //emotionText.setText('1');
-        //Log.e("emotion","setting text to 1");
+        theFrame = frame;
+        doRecognize();
+
 
         return mDelegate.detect(frame);
     }
@@ -57,7 +55,6 @@ public class EmotionDetector extends Detector<Face> {
     public boolean setFocus(int id) {
         return mDelegate.setFocus(id);
     }
-
 
 
     public void doRecognize() {
@@ -75,7 +72,8 @@ public class EmotionDetector extends Detector<Face> {
         // Store error message
         private Exception e = null;
 
-        public doRequest() {}
+        public doRequest() {
+        }
 
         @Override
         protected List<RecognizeResult> doInBackground(String... args) {
@@ -93,12 +91,13 @@ public class EmotionDetector extends Detector<Face> {
             // Display based on error existence
 
             if (e != null) {
-                emotionText.setText("Error: " + e.getMessage());
-                //Log.e("error","messagesdfsdf");
+                //emotionText.setText("Error: " + e.getMessage());
+                Log.e("error", e.getMessage());
                 this.e = null;
             } else {
                 if (result.size() == 0) {
-                    emotionText.setText("No emotion detected :(");
+                    //emotionText.setText("No emotion detected :(");
+                    Log.e("error", "No emotion detected :(");
                 } else {
                     Integer count = 0;
                     String resultText = "";
@@ -116,7 +115,7 @@ public class EmotionDetector extends Detector<Face> {
                         count++;
                     }
                     //emotionText.setText(resultText);
-                    Log.e("result",resultText);
+                    Log.e("result", resultText);
                 }
             }
         }
@@ -130,42 +129,22 @@ public class EmotionDetector extends Detector<Face> {
 
         // Put the image into an input stream for detection.
 
-        //writeBuffer(theFrame.getGrayscaleImageData(), output1);
-        //ByteArrayOutputStream output = (ByteArrayOutputStream) output1;
-        ByteArrayInputStream inputStream = new ByteArrayInputStream(theFrame.getGrayscaleImageData().array() /*output.toByteArray()*/);
+        ByteBuffer byteBuffer = theFrame.getGrayscaleImageData();
+        int width = theFrame.getMetadata().getWidth();
+        int heigth = theFrame.getMetadata().getHeight();
+        YuvImage yuvimage = new YuvImage(byteBuffer.array(), ImageFormat.NV21, width, heigth, null);
 
-
-        /*ByteArrayOutputStream output = new ByteArrayOutputStream();
-        mbitmap.compress(Bitmap.CompressFormat.JPEG, 100, output);
-        ByteArrayInputStream inputStream = new ByteArrayInputStream(output.toByteArray());*/
-
-        // -----------------------------------------------------------------------
-        // KEY SAMPLE CODE STARTS HERE
-        // -----------------------------------------------------------------------
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        yuvimage.compressToJpeg(new Rect(0, 0, width, heigth), 100, output);
+        ByteArrayInputStream inputStream = new ByteArrayInputStream(output.toByteArray());
 
         List<RecognizeResult> result = null;
-        //
-        // Detect emotion by auto-detecting faces in the image.
-        //
         result = client.recognizeImage(inputStream);
 
         String json = gson.toJson(result);
         Log.d("result", json);
-        // -----------------------------------------------------------------------
-        // KEY SAMPLE CODE ENDS HERE
-        // -----------------------------------------------------------------------
+
         return result;
-    }
-
-    private void writeBuffer(ByteBuffer buffer, OutputStream stream) {
-        WritableByteChannel channel = Channels.newChannel(stream);
-        try {
-            channel.write(buffer);
-        } catch (Exception e) {
-            //this.e = e;    // Store error
-        }
-        //return null;
-
     }
 
 }

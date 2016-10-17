@@ -91,13 +91,13 @@ public class EmotionDetector extends Detector<Face> {
             // Display based on error existence
 
             if (e != null) {
-                //emotionText.setText("Error: " + e.getMessage());
-                Log.e("error", e.getMessage());
+                emotionText.setText("Error: " + e.getMessage());
+                //Log.e("error", e.getMessage());
                 this.e = null;
             } else {
                 if (result.size() == 0) {
-                    //emotionText.setText("No emotion detected :(");
-                    Log.e("error", "No emotion detected :(");
+                    emotionText.setText("No emotion detected :(");
+                    //Log.e("error", "No emotion detected :(");
                 } else {
                     Integer count = 0;
                     String resultText = "";
@@ -114,8 +114,8 @@ public class EmotionDetector extends Detector<Face> {
                         resultText += (String.format("\t face rectangle: %d, %d, %d, %d", r.faceRectangle.left, r.faceRectangle.top, r.faceRectangle.width, r.faceRectangle.height));
                         count++;
                     }
-                    //emotionText.setText(resultText);
-                    Log.e("result", resultText);
+                    emotionText.setText(resultText);
+                    //Log.e("result", resultText);
                 }
             }
         }

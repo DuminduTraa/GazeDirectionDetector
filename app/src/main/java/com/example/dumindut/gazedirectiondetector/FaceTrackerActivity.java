@@ -25,10 +25,13 @@ import com.example.dumindut.gazedirectiondetector.ui.camera.GraphicOverlay;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.vision.CameraSource;
+import com.google.android.gms.vision.Detector;
+import com.google.android.gms.vision.MultiDetector;
 import com.google.android.gms.vision.MultiProcessor;
 import com.google.android.gms.vision.Tracker;
 import com.google.android.gms.vision.face.Face;
 import com.google.android.gms.vision.face.FaceDetector;
+import com.google.android.gms.vision.face.LargestFaceFocusingProcessor;
 import com.microsoft.projectoxford.emotion.EmotionServiceClient;
 import com.microsoft.projectoxford.emotion.EmotionServiceRestClient;
 
@@ -113,20 +116,33 @@ public final class FaceTrackerActivity extends AppCompatActivity {
 
         Context context = getApplicationContext();
 
+        // Face Detector for face detection and processing
         FaceDetector faceDetector = new FaceDetector.Builder(context)
                 .setClassificationType(FaceDetector.ALL_CLASSIFICATIONS)
                 .setLandmarkType (FaceDetector.ALL_LANDMARKS)
                 .setMode(FaceDetector.ACCURATE_MODE)
                 .build();
 
-        EmotionDetector emotionDetector = new EmotionDetector(faceDetector,textView, client);
+        //face detector for emotion detection
+        FaceDetector faceDetector1 = new FaceDetector.Builder(context).build();
 
-        emotionDetector.setProcessor(
-                new MultiProcessor.Builder<>(new GraphicFaceTrackerFactory())
-                        .build());
+        // facedetector1 is wrapped with emotion detector
+        EmotionDetector emotionDetector = new EmotionDetector(faceDetector1,textView, client);
 
+        //Setting processors for the two detectors
+        faceDetector.setProcessor(new MultiProcessor.Builder<>(new GraphicFaceTrackerFactory())
+                .build());
 
-        if (!faceDetector.isOperational()) {
+        emotionDetector.setProcessor(new LargestFaceFocusingProcessor.Builder(faceDetector1,new FaceTracker())
+                .build());
+
+        //multi detector for both face and emotion detectors
+        MultiDetector multiDetector = new MultiDetector.Builder()
+                .add(faceDetector)
+                .add(emotionDetector)
+                .build();
+
+        if (!multiDetector.isOperational()) {
             Log.w(TAG, "Face detector dependencies are not yet available.");
         }
 
@@ -135,7 +151,7 @@ public final class FaceTrackerActivity extends AppCompatActivity {
             facing = CameraSource.CAMERA_FACING_BACK;
         }
 
-        mCameraSource = new CameraSource.Builder(context, emotionDetector)
+        mCameraSource = new CameraSource.Builder(context, multiDetector)
                 .setRequestedPreviewSize(1280,720)
                 .setFacing(facing)
                 .setRequestedFps(1f)
@@ -292,6 +308,18 @@ public final class FaceTrackerActivity extends AppCompatActivity {
         @Override
         public void onDone() {
             mOverlay.remove(mFaceGraphic);
+        }
+    }
+
+    // new Face Tracker to the processor of emotion detector.
+    class FaceTracker extends Tracker<Face> {
+        public void onNewItem(int id, Face face) {
+        }
+
+        public void onUpdate(Detector.Detections<Face> detections, Face face) {
+        }
+
+        public void onDone() {
         }
     }
 }

@@ -34,7 +34,7 @@
         android:id="@+id/emotion_text_view"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="0"
-        android:textSize="16dp"/>
+        android:text="Emotions are not detecting in portrait mode still"
+        android:textColor="#FF0000"/>
 
 </RelativeLayout>

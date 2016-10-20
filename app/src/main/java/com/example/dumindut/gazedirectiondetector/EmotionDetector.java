@@ -101,17 +101,48 @@ public class EmotionDetector extends Detector<Face> {
                 } else {
                     Integer count = 0;
                     String resultText = "";
+
                     for (RecognizeResult r : result) {
                         resultText += (String.format("\nFace #%1$d \n", count));
-                        resultText += (String.format("\t anger: %1$.5f\n", r.scores.anger));
-                        resultText += (String.format("\t contempt: %1$.5f\n", r.scores.contempt));
-                        resultText += (String.format("\t disgust: %1$.5f\n", r.scores.disgust));
-                        resultText += (String.format("\t fear: %1$.5f\n", r.scores.fear));
-                        resultText += (String.format("\t happiness: %1$.5f\n", r.scores.happiness));
-                        resultText += (String.format("\t neutral: %1$.5f\n", r.scores.neutral));
-                        resultText += (String.format("\t sadness: %1$.5f\n", r.scores.sadness));
-                        resultText += (String.format("\t surprise: %1$.5f\n", r.scores.surprise));
-                        resultText += (String.format("\t face rectangle: %d, %d, %d, %d", r.faceRectangle.left, r.faceRectangle.top, r.faceRectangle.width, r.faceRectangle.height));
+
+                        Double[] valueList = new Double[8];
+                        valueList[0] = r.scores.anger;
+                        valueList[1] = r.scores.contempt;
+                        valueList[2] = r.scores.disgust;
+                        valueList[3] = r.scores.fear;
+                        valueList[4] = r.scores.happiness;
+                        valueList[5] = r.scores.neutral;
+                        valueList[6] = r.scores.sadness;
+                        valueList[7] = r.scores.surprise;
+
+
+                        String[] emotions = new String[8];
+                        emotions[0] = "Anger";
+                        emotions[1] = "Contempt";
+                        emotions[2] = "Disgust";
+                        emotions[3] = "Fear";
+                        emotions[4] = "Happiness";
+                        emotions[5] = "Neutral";
+                        emotions[6] = "Sadness";
+                        emotions[7] = "Surprise";
+
+                        String most = "";
+                        String secondMost = "";
+                        Double mostValue = 0.;
+                        Double secondMostValue = 0.;
+
+                        for (int i=0;i<8;i++){
+                            if(valueList[i] > mostValue){
+                                secondMostValue = mostValue;
+                                secondMost = most;
+                                mostValue = valueList[i];
+                                most = emotions[i];
+                            }
+                        }
+
+                        resultText += most + " : " + (int)(double)(mostValue*100) + "%\n";
+                        resultText += secondMost + " : " + (int)(double)(secondMostValue*100) + "%\n";
+                        resultText += (String.format("face rectangle: %d, %d, %d, %d", r.faceRectangle.left, r.faceRectangle.top, r.faceRectangle.width, r.faceRectangle.height));
                         count++;
                     }
                     emotionText.setText(resultText);

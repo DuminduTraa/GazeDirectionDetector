@@ -138,6 +138,10 @@ public class EmotionDetector extends Detector<Face> {
                                 mostValue = valueList[i];
                                 most = emotions[i];
                             }
+                            else if(valueList[i] > secondMostValue){
+                                secondMostValue = valueList[i];
+                                secondMost = emotions[i];
+                            }
                         }
 
                         resultText += most + " : " + (int)(double)(mostValue*100) + "%\n";

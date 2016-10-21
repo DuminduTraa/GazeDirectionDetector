@@ -1,6 +1,9 @@
 package com.example.dumindut.gazedirectiondetector;
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
+import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.graphics.YuvImage;
 import android.os.AsyncTask;
@@ -40,11 +43,10 @@ public class EmotionDetector extends Detector<Face> {
     @Override
     public SparseArray<Face> detect(Frame frame) {
         // *** Custom frame processing code
-
         theFrame = frame;
+
+        //Log.e("dfsdf", ""+ frame.getMetadata().getHeight() + " " + frame.getMetadata().getWidth());
         doRecognize();
-
-
         return mDelegate.detect(frame);
     }
 
@@ -171,7 +173,19 @@ public class EmotionDetector extends Detector<Face> {
 
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         yuvimage.compressToJpeg(new Rect(0, 0, width, heigth), 100, output);
-        ByteArrayInputStream inputStream = new ByteArrayInputStream(output.toByteArray());
+
+        byte[] outputArray = output.toByteArray();
+
+        //If portraid, changing the outputArray
+        if (theFrame.getMetadata().getRotation() ==3){
+            Bitmap bmp = BitmapFactory.decodeByteArray(outputArray, 0, outputArray.length);
+            Bitmap rotatedBmp = rotateImage(bmp);
+            ByteArrayOutputStream output2 = new ByteArrayOutputStream();
+            rotatedBmp.compress(Bitmap.CompressFormat.JPEG, 100, output2);
+            outputArray = output2.toByteArray();
+        }
+
+        ByteArrayInputStream inputStream = new ByteArrayInputStream(outputArray);
 
         List<RecognizeResult> result = null;
         result = client.recognizeImage(inputStream);
@@ -181,5 +195,14 @@ public class EmotionDetector extends Detector<Face> {
 
         return result;
     }
+
+    //Method to rotate bitmap by 90degrees clockwise
+    public Bitmap rotateImage(Bitmap bitmapSrc) {
+        Matrix matrix = new Matrix();
+        matrix.postRotate(270);
+        return Bitmap.createBitmap(bitmapSrc, 0, 0,
+                bitmapSrc.getWidth(), bitmapSrc.getHeight(), matrix, true);
+    }
+
 
 }

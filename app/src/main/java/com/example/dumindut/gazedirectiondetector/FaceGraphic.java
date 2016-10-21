@@ -83,13 +83,27 @@ class FaceGraphic extends GraphicOverlay.Graphic {
         float right_eye_y = 0;
         float mouth_x = 0;
         float mouth_y = 0;
+        float left_mouth_x = 0;
+        float left_mouth_y = 0;
+        float right_mouth_x = 0;
+        float right_mouth_y = 0;
+        float left_cheek_x = 0;
+        float left_cheek_y = 0;
+        float right_cheek_x = 0;
+        float right_cheek_y = 0;
+        float nose_x = 0;
+        float nose_y = 0;
+
+        float eulerY = face.getEulerY();
+        float eulerZ = face.getEulerZ();
+
 
         canvas.drawText("id: " + mFaceId, x + ID_X_OFFSET, y + ID_Y_OFFSET, mIdPaint);
         /*canvas.drawText("right eye: " + String.format("%.2f", face.getIsRightEyeOpenProbability()), x + ID_X_OFFSET * 2, y + ID_Y_OFFSET * 2, mIdPaint);
         canvas.drawText("left eye: " + String.format("%.2f", face.getIsLeftEyeOpenProbability()), x - ID_X_OFFSET*2, y - ID_Y_OFFSET*2, mIdPaint);*/
 
-        canvas.drawText("rotationY: " + String.format("%.2f", face.getEulerY()), x-100,y-150, mIdPaint);
-        canvas.drawText("rotationZ: " + String.format("%.2f", face.getEulerZ()), x-100,y-100, mIdPaint);
+        canvas.drawText("rotationY: " + String.format("%.2f", eulerY), x-100,y-150, mIdPaint);
+        canvas.drawText("rotationZ: " + String.format("%.2f", eulerZ), x-100,y-100, mIdPaint);
 
         /*for (Landmark landmark : face.getLandmarks()){
             float cx = translateX(landmark.getPosition().x);
@@ -99,52 +113,46 @@ class FaceGraphic extends GraphicOverlay.Graphic {
 
         for (Landmark landmark : face.getLandmarks()) {
             if (landmark.getType() == Landmark.RIGHT_EYE) {
-                float cx = translateX(landmark.getPosition().x);
-                float cy = translateY(landmark.getPosition().y);
-                canvas.drawCircle(cx, cy, FACE_POSITION_RADIUS, mFacePositionPaint);
-                right_eye_x = cx;
-                right_eye_y = cy;
+                right_eye_x = translateX(landmark.getPosition().x);
+                right_eye_y = translateY(landmark.getPosition().y);
+                canvas.drawCircle(right_eye_x, right_eye_y, FACE_POSITION_RADIUS, mFacePositionPaint);
             }
             else if (landmark.getType() == Landmark.LEFT_EYE) {
-                float cx = translateX(landmark.getPosition().x);
-                float cy = translateY(landmark.getPosition().y);
-                canvas.drawCircle(cx, cy, FACE_POSITION_RADIUS, mFacePositionPaint);
-                left_eye_x = cx;
-                left_eye_y = cy;
+                left_eye_x = translateX(landmark.getPosition().x);
+                left_eye_y = translateY(landmark.getPosition().y);
+                canvas.drawCircle(left_eye_x, left_eye_y, FACE_POSITION_RADIUS, mFacePositionPaint);
             }
             else if (landmark.getType() == Landmark.LEFT_CHEEK) {
-                float cx = translateX(landmark.getPosition().x);
-                float cy = translateY(landmark.getPosition().y);
-                canvas.drawCircle(cx, cy, FACE_POSITION_RADIUS, mFacePositionPaint);
+                left_cheek_x = translateX(landmark.getPosition().x);
+                left_cheek_y = translateY(landmark.getPosition().y);
+                canvas.drawCircle(left_cheek_x, left_cheek_y, FACE_POSITION_RADIUS, mFacePositionPaint);
             }
             else if (landmark.getType() == Landmark.RIGHT_CHEEK) {
-                float cx = translateX(landmark.getPosition().x);
-                float cy = translateY(landmark.getPosition().y);
-                canvas.drawCircle(cx, cy, FACE_POSITION_RADIUS, mFacePositionPaint);
+                right_cheek_x = translateX(landmark.getPosition().x);
+                right_cheek_y = translateY(landmark.getPosition().y);
+                canvas.drawCircle(right_cheek_x, right_cheek_y, FACE_POSITION_RADIUS, mFacePositionPaint);
             }
             else if (landmark.getType() == Landmark.NOSE_BASE) {
-                float cx = translateX(landmark.getPosition().x);
-                float cy = translateY(landmark.getPosition().y);
-                canvas.drawCircle(cx, cy, FACE_POSITION_RADIUS, mFacePositionPaint);
+                nose_x = translateX(landmark.getPosition().x);
+                nose_y = translateY(landmark.getPosition().y);
+                canvas.drawCircle(nose_x, nose_y, FACE_POSITION_RADIUS, mFacePositionPaint);
             }
             else if (landmark.getType() == Landmark.LEFT_MOUTH) {
-                float cx = translateX(landmark.getPosition().x);
-                float cy = translateY(landmark.getPosition().y);
-                canvas.drawCircle(cx, cy, FACE_POSITION_RADIUS, mFacePositionPaint);
+                left_mouth_x = translateX(landmark.getPosition().x);
+                left_mouth_y = translateY(landmark.getPosition().y);
+                canvas.drawCircle(left_mouth_x, left_mouth_y, FACE_POSITION_RADIUS, mFacePositionPaint);
             }
             else if (landmark.getType() == Landmark.RIGHT_MOUTH) {
-                float cx = translateX(landmark.getPosition().x);
-                float cy = translateY(landmark.getPosition().y);
-                canvas.drawCircle(cx, cy, FACE_POSITION_RADIUS, mFacePositionPaint);
+                right_mouth_x = translateX(landmark.getPosition().x);
+                right_mouth_y = translateY(landmark.getPosition().y);
+                canvas.drawCircle(right_mouth_x, right_mouth_y, FACE_POSITION_RADIUS, mFacePositionPaint);
             }
             else if (landmark.getType() == Landmark.BOTTOM_MOUTH) {
-                float cx = translateX(landmark.getPosition().x);
-                float cy = translateY(landmark.getPosition().y);
-                canvas.drawCircle(cx, cy, FACE_POSITION_RADIUS, mFacePositionPaint);
-                mouth_x = cx;
-                mouth_y = cy;
+                mouth_x = translateX(landmark.getPosition().x);
+                mouth_y = translateY(landmark.getPosition().y);
+                canvas.drawCircle( mouth_x, mouth_y, FACE_POSITION_RADIUS, mFacePositionPaint);
             }
-            else if (landmark.getType() == Landmark.LEFT_EAR) {
+            /*else if (landmark.getType() == Landmark.LEFT_EAR) {
                 float cx = translateX(landmark.getPosition().x);
                 float cy = translateY(landmark.getPosition().y);
                 canvas.drawCircle(cx, cy, FACE_POSITION_RADIUS, mFacePositionPaint);
@@ -163,7 +171,7 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                 float cx = translateX(landmark.getPosition().x);
                 float cy = translateY(landmark.getPosition().y);
                 canvas.drawCircle(cx, cy, FACE_POSITION_RADIUS, mFacePositionPaint);
-            }
+            }*/
         }
 
         //Draw the T shape connecting eyes and mouth
@@ -172,6 +180,9 @@ class FaceGraphic extends GraphicOverlay.Graphic {
             canvas.drawLine(left_eye_x, left_eye_y, right_eye_x, right_eye_y, mFacePositionPaint);
             canvas.drawLine((left_eye_x+right_eye_x)/2, (left_eye_y+right_eye_y)/2, mouth_x, mouth_y, mFacePositionPaint);
         }
+        //else if(){
+
+        //}
 
 
         // Draws a bounding box around the face.

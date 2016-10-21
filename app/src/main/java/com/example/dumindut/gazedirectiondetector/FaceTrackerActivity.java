@@ -162,7 +162,6 @@ public final class FaceTrackerActivity extends AppCompatActivity {
      @Override
     protected void onResume() {
         super.onResume();
-
         startCameraSource();
     }
 

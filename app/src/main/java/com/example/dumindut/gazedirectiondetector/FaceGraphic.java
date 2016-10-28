@@ -75,32 +75,36 @@ class FaceGraphic extends GraphicOverlay.Graphic {
 
         float x = translateX(face.getPosition().x + face.getWidth() / 2);
         float y = translateY(face.getPosition().y + face.getHeight() / 2);
-        //canvas.drawCircle(x, y, FACE_POSITION_RADIUS, mFacePositionPaint);
+        canvas.drawCircle(x, y, FACE_POSITION_RADIUS+5.0f, mFacePositionPaint);
 
-        float left_eye_x = 0;
-        float left_eye_y = 0;
-        float right_eye_x = 0;
-        float right_eye_y = 0;
-        float mouth_x = 0;
-        float mouth_y = 0;
-        float left_mouth_x = 0;
-        float left_mouth_y = 0;
-        float right_mouth_x = 0;
-        float right_mouth_y = 0;
-        float left_cheek_x = 0;
-        float left_cheek_y = 0;
-        float right_cheek_x = 0;
-        float right_cheek_y = 0;
-        float nose_x = 0;
-        float nose_y = 0;
+        float left_eye_x = -1;
+        float left_eye_y = -1;
+        float right_eye_x = -1;
+        float right_eye_y = -1;
+        float mouth_x = -1;
+        float mouth_y = -1;
+        float left_mouth_x = -1;
+        float left_mouth_y = -1;
+        float right_mouth_x = -1;
+        float right_mouth_y = -1;
+        float left_cheek_x = -1;
+        float left_cheek_y = -1;
+        float right_cheek_x = -1;
+        float right_cheek_y = -1;
+        float nose_x = -1;
+        float nose_y = -1;
 
         float eulerY = face.getEulerY();
         float eulerZ = face.getEulerZ();
 
+        float theta;
+        boolean isThetapositive;
+        boolean isYLeft;
+        float dirLineLength;
+
 
         canvas.drawText("id: " + mFaceId, x + ID_X_OFFSET, y + ID_Y_OFFSET, mIdPaint);
-        /*canvas.drawText("right eye: " + String.format("%.2f", face.getIsRightEyeOpenProbability()), x + ID_X_OFFSET * 2, y + ID_Y_OFFSET * 2, mIdPaint);
-        canvas.drawText("left eye: " + String.format("%.2f", face.getIsLeftEyeOpenProbability()), x - ID_X_OFFSET*2, y - ID_Y_OFFSET*2, mIdPaint);*/
+
 
         canvas.drawText("rotationY: " + String.format("%.2f", eulerY), x-100,y-150, mIdPaint);
         canvas.drawText("rotationZ: " + String.format("%.2f", eulerZ), x-100,y-100, mIdPaint);
@@ -176,13 +180,44 @@ class FaceGraphic extends GraphicOverlay.Graphic {
 
         //Draw the T shape connecting eyes and mouth
 
-        if (left_eye_x != 0 && left_eye_y != 0 && right_eye_x != 0 &&right_eye_y != 0 && mouth_x!=0 && mouth_y!=0){
-            canvas.drawLine(left_eye_x, left_eye_y, right_eye_x, right_eye_y, mFacePositionPaint);
-            canvas.drawLine((left_eye_x+right_eye_x)/2, (left_eye_y+right_eye_y)/2, mouth_x, mouth_y, mFacePositionPaint);
-        }
+//        if (left_eye_x != -1 && left_eye_y != -1 && right_eye_x != -1 &&right_eye_y != -1 && mouth_x!=-1 && mouth_y!=-1){
+//            canvas.drawLine(left_eye_x, left_eye_y, right_eye_x, right_eye_y, mFacePositionPaint);
+//            canvas.drawLine((left_eye_x+right_eye_x)/2, (left_eye_y+right_eye_y)/2, mouth_x, mouth_y, mFacePositionPaint);
+//        }
         //else if(){
 
         //}
+
+        //Drawing a looking direction line from the middle of the face. Using only rotation details
+        //Looking from selfie camera. All the details according to the frame, not person
+
+        theta = Math.abs(eulerZ);
+        dirLineLength = Math.abs(eulerY)/60*1000;
+        if(eulerZ<0){isThetapositive = false;}
+        else{isThetapositive = true;}
+        if(eulerY<0){isYLeft = false;}       // Left is preview frame's left
+        else{isYLeft = true;}
+
+        if(isThetapositive && isYLeft){
+            double stopX = x-dirLineLength*Math.cos(Math.toRadians(theta));
+            double stopY = y-dirLineLength*Math.sin(Math.toRadians(theta));
+            canvas.drawLine(x,y,(float)stopX,(float)stopY,mFacePositionPaint);
+        }
+        else if(isThetapositive && isYLeft==false){
+            double stopX = x+dirLineLength*Math.cos(Math.toRadians(theta));
+            double stopY = y+dirLineLength*Math.sin(Math.toRadians(theta));
+            canvas.drawLine(x,y,(float)stopX,(float)stopY,mFacePositionPaint);
+        }
+        else if(isThetapositive==false && isYLeft){
+            double stopX = x-dirLineLength*Math.cos(Math.toRadians(theta));
+            double stopY = y+dirLineLength*Math.sin(Math.toRadians(theta));
+            canvas.drawLine(x,y,(float)stopX,(float)stopY,mFacePositionPaint);
+        }
+        else if(isThetapositive==false && isYLeft==false){
+            double stopX = x+dirLineLength*Math.cos(Math.toRadians(theta));
+            double stopY = y-dirLineLength*Math.sin(Math.toRadians(theta));
+            canvas.drawLine(x,y,(float)stopX,(float)stopY,mFacePositionPaint);
+        }
 
 
         // Draws a bounding box around the face.

@@ -53,7 +53,6 @@ public class EmotionDetector extends Detector<Face> {
             return mDelegate.detect(frame);
         }
         else{
-            //doRecognize();
             frameCount++;
             return mDelegate.detect(frame);
         }

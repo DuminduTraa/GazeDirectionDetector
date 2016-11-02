@@ -15,7 +15,7 @@ import com.google.android.gms.vision.Detector;
 import com.google.android.gms.vision.Frame;
 import com.google.android.gms.vision.face.Face;
 import com.google.gson.Gson;
-import com.microsoft.projectoxford.emotion.EmotionServiceClient;
+import com.microsoft.projectoxford.emotion.EmotionServiceRestClient;
 import com.microsoft.projectoxford.emotion.contract.RecognizeResult;
 import com.microsoft.projectoxford.emotion.rest.EmotionServiceException;
 
@@ -31,13 +31,15 @@ import java.util.List;
 public class EmotionDetector extends Detector<Face> {
     private Detector<Face> mDelegate;
     private TextView emotionText;
-    private EmotionServiceClient client;
+    private EmotionServiceRestClient client;
     private Frame theFrame;
+    private int frameCount;
 
-    EmotionDetector(Detector<Face> delegate, TextView textView, EmotionServiceClient client1) {
+    EmotionDetector(Detector<Face> delegate, TextView textView, EmotionServiceRestClient client1, int count) {
         mDelegate = delegate;
         emotionText = textView;
         client = client1;
+        frameCount = count;
     }
 
     @Override
@@ -45,9 +47,17 @@ public class EmotionDetector extends Detector<Face> {
         // *** Custom frame processing code
         theFrame = frame;
 
-        //Log.e("dfsdf", ""+ frame.getMetadata().getHeight() + " " + frame.getMetadata().getWidth());
-        doRecognize();
-        return mDelegate.detect(frame);
+        if(frameCount%50==0){
+            doRecognize();
+            frameCount = 1;
+            return mDelegate.detect(frame);
+        }
+        else{
+            //doRecognize();
+            frameCount++;
+            return mDelegate.detect(frame);
+        }
+
     }
 
     public boolean isOperational() {

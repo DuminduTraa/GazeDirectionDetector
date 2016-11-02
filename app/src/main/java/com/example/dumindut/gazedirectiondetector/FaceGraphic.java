@@ -180,13 +180,13 @@ class FaceGraphic extends GraphicOverlay.Graphic {
 
         //Draw the T shape connecting eyes and mouth
 
-//        if (left_eye_x != -1 && left_eye_y != -1 && right_eye_x != -1 &&right_eye_y != -1 && mouth_x!=-1 && mouth_y!=-1){
-//            canvas.drawLine(left_eye_x, left_eye_y, right_eye_x, right_eye_y, mFacePositionPaint);
-//            canvas.drawLine((left_eye_x+right_eye_x)/2, (left_eye_y+right_eye_y)/2, mouth_x, mouth_y, mFacePositionPaint);
-//        }
-        //else if(){
+/*        if (left_eye_x != -1 && left_eye_y != -1 && right_eye_x != -1 &&right_eye_y != -1 && mouth_x!=-1 && mouth_y!=-1){
+            canvas.drawLine(left_eye_x, left_eye_y, right_eye_x, right_eye_y, mFacePositionPaint);
+            canvas.drawLine((left_eye_x+right_eye_x)/2, (left_eye_y+right_eye_y)/2, mouth_x, mouth_y, mFacePositionPaint);
+        }
+        else if(){
 
-        //}
+        }*/
 
         //Drawing a looking direction line from the middle of the face. Using only rotation details
         //Looking from selfie camera. All the details according to the frame, not person

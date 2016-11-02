@@ -32,7 +32,6 @@ import com.google.android.gms.vision.Tracker;
 import com.google.android.gms.vision.face.Face;
 import com.google.android.gms.vision.face.FaceDetector;
 import com.google.android.gms.vision.face.LargestFaceFocusingProcessor;
-import com.microsoft.projectoxford.emotion.EmotionServiceClient;
 import com.microsoft.projectoxford.emotion.EmotionServiceRestClient;
 
 import java.io.IOException;
@@ -53,7 +52,9 @@ public final class FaceTrackerActivity extends AppCompatActivity {
 
     private boolean mIsFrontFacing = true;
 
-    private EmotionServiceClient client;
+    private EmotionServiceRestClient client;
+
+    private int frameCount = 0;
 
 
     @Override
@@ -62,7 +63,7 @@ public final class FaceTrackerActivity extends AppCompatActivity {
         setContentView(R.layout.main);
 
         if (client == null) {
-            client = new EmotionServiceRestClient(getString(R.string.subscription_key));
+           client = new EmotionServiceRestClient(getString(R.string.subscription_key));
         }
 
         mPreview = (CameraSourcePreview) findViewById(R.id.preview);
@@ -127,7 +128,7 @@ public final class FaceTrackerActivity extends AppCompatActivity {
         FaceDetector faceDetector1 = new FaceDetector.Builder(context).build();
 
         // facedetector1 is wrapped with emotion detector
-        EmotionDetector emotionDetector = new EmotionDetector(faceDetector1,textView, client);
+        EmotionDetector emotionDetector = new EmotionDetector(faceDetector1,textView,client,frameCount);
 
         //Setting processors for the two detectors
         faceDetector.setProcessor(new MultiProcessor.Builder<>(new GraphicFaceTrackerFactory())
@@ -163,7 +164,7 @@ public final class FaceTrackerActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         startCameraSource();
-    }
+     }
 
       @Override
     protected void onPause() {
@@ -231,7 +232,6 @@ public final class FaceTrackerActivity extends AppCompatActivity {
                 mCameraSource.release();
                 mCameraSource = null;
             }
-
             createCameraSource();
             startCameraSource();
         }

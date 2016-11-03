@@ -38,7 +38,9 @@ class FaceGraphic extends GraphicOverlay.Graphic {
     private volatile Face mFace;
     private int mFaceId;
 
-    FaceGraphic(GraphicOverlay overlay) {
+    private boolean mIsFrontFacing;
+
+    FaceGraphic(GraphicOverlay overlay,boolean facing) {
         super(overlay);
 
         mCurrentColorIndex = (mCurrentColorIndex + 1) % COLOR_CHOICES.length;
@@ -55,6 +57,8 @@ class FaceGraphic extends GraphicOverlay.Graphic {
         mBoxPaint.setColor(selectedColor);
         mBoxPaint.setStyle(Paint.Style.STROKE);
         mBoxPaint.setStrokeWidth(BOX_STROKE_WIDTH);
+
+        mIsFrontFacing = facing;
     }
 
     void setId(int id) {
@@ -76,6 +80,9 @@ class FaceGraphic extends GraphicOverlay.Graphic {
         float x = translateX(face.getPosition().x + face.getWidth() / 2);
         float y = translateY(face.getPosition().y + face.getHeight() / 2);
         canvas.drawCircle(x, y, FACE_POSITION_RADIUS+5.0f, mFacePositionPaint);
+
+//        canvas.drawCircle( translateX(face.getPosition().x),  translateY(face.getPosition().y), FACE_POSITION_RADIUS+10.0f, mFacePositionPaint);
+//        canvas.drawText("rotationY: " + String.format("%.2f",face.getHeight() ), x,y, mIdPaint);
 
         float left_eye_x = -1;
         float left_eye_y = -1;
@@ -193,27 +200,51 @@ class FaceGraphic extends GraphicOverlay.Graphic {
 
         theta = Math.abs(eulerZ);
         dirLineLength = Math.abs(eulerY)/60*1000;
-        if(eulerZ<0){isThetapositive = false;}
-        else{isThetapositive = true;}
-        if(eulerY<0){isYLeft = false;}       // Left is preview frame's left
-        else{isYLeft = true;}
+
+       if(mIsFrontFacing) {
+            if (eulerZ < 0) {
+                isThetapositive = false;
+            } else {
+                isThetapositive = true;
+            }
+            if (eulerY < 0) {
+                isYLeft = false;
+            }       // Left is preview frame's left
+            else {
+                isYLeft = true;
+            }
+        }
+
+        else{
+            if (eulerZ > 0) {
+                isThetapositive = false;
+            } else {
+                isThetapositive = true;
+            }
+            if (eulerY > 0) {
+                isYLeft = false;
+            }       // Left is preview frame's left
+            else {
+                isYLeft = true;
+            }
+        }
 
         if(isThetapositive && isYLeft){
             double stopX = x-dirLineLength*Math.cos(Math.toRadians(theta));
             double stopY = y-dirLineLength*Math.sin(Math.toRadians(theta));
             canvas.drawLine(x,y,(float)stopX,(float)stopY,mFacePositionPaint);
         }
-        else if(isThetapositive && isYLeft==false){
+        else if(isThetapositive && !isYLeft){
             double stopX = x+dirLineLength*Math.cos(Math.toRadians(theta));
             double stopY = y+dirLineLength*Math.sin(Math.toRadians(theta));
             canvas.drawLine(x,y,(float)stopX,(float)stopY,mFacePositionPaint);
         }
-        else if(isThetapositive==false && isYLeft){
+        else if(!isThetapositive && isYLeft){
             double stopX = x-dirLineLength*Math.cos(Math.toRadians(theta));
             double stopY = y+dirLineLength*Math.sin(Math.toRadians(theta));
             canvas.drawLine(x,y,(float)stopX,(float)stopY,mFacePositionPaint);
         }
-        else if(isThetapositive==false && isYLeft==false){
+        else if(!isThetapositive && !isYLeft){
             double stopX = x+dirLineLength*Math.cos(Math.toRadians(theta));
             double stopY = y-dirLineLength*Math.sin(Math.toRadians(theta));
             canvas.drawLine(x,y,(float)stopX,(float)stopY,mFacePositionPaint);

@@ -52,7 +52,7 @@ public final class FaceTrackerActivity extends AppCompatActivity {
 
     private boolean mIsFrontFacing = true;
 
-    private EmotionServiceRestClient client;
+    public EmotionServiceRestClient client;
 
     private int frameCount = 0;
 
@@ -279,7 +279,7 @@ public final class FaceTrackerActivity extends AppCompatActivity {
 
         GraphicFaceTracker(GraphicOverlay overlay) {
             mOverlay = overlay;
-            mFaceGraphic = new FaceGraphic(overlay);
+            mFaceGraphic = new FaceGraphic(overlay,mIsFrontFacing);
         }
 
 

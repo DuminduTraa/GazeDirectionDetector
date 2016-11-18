@@ -77,12 +77,13 @@ class FaceGraphic extends GraphicOverlay.Graphic {
             return;
         }
 
-        float x = translateX(face.getPosition().x + face.getWidth() / 2);
-        float y = translateY(face.getPosition().y + face.getHeight() / 2);
-        canvas.drawCircle(x, y, FACE_POSITION_RADIUS+5.0f, mFacePositionPaint);
+        float width = face.getWidth();
+        float height = face.getHeight();
+        float faceArea = width*height;
 
-//        canvas.drawCircle( translateX(face.getPosition().x),  translateY(face.getPosition().y), FACE_POSITION_RADIUS+10.0f, mFacePositionPaint);
-//        canvas.drawText("rotationY: " + String.format("%.2f",face.getHeight() ), x,y, mIdPaint);
+        float x = translateX(face.getPosition().x + width / 2);
+        float y = translateY(face.getPosition().y + height / 2);
+
 
         float left_eye_x = -1;
         float left_eye_y = -1;
@@ -104,17 +105,18 @@ class FaceGraphic extends GraphicOverlay.Graphic {
         float eulerY = face.getEulerY();
         float eulerZ = face.getEulerZ();
 
-        float theta;
-        float dirLineLength;
+        float theta = Math.abs(eulerZ);
+        float dirLineLength = Math.abs(eulerY)/60*1000;
         boolean isThetaPositive;
         boolean isYLeft;
         double stopX;
         double stopY;
 
-        boolean isParent = false;
+        String name;
 
-        canvas.drawText("id: " + mFaceId, x + ID_X_OFFSET, y + ID_Y_OFFSET, mIdPaint);
+        //canvas.drawText("id: " + mFaceId, x + ID_X_OFFSET, y + ID_Y_OFFSET, mIdPaint);
 
+        canvas.drawCircle(x, y, FACE_POSITION_RADIUS+5.0f, mFacePositionPaint);
 
         canvas.drawText("rotationY: " + String.format("%.2f", eulerY), x-100,y-150, mIdPaint);
         canvas.drawText("rotationZ: " + String.format("%.2f", eulerZ), x-100,y-100, mIdPaint);
@@ -201,8 +203,7 @@ class FaceGraphic extends GraphicOverlay.Graphic {
         //Drawing a looking direction line from the middle of the face. Using only rotation details
         //Looking from selfie camera. All the details according to the frame, not person
 
-        theta = Math.abs(eulerZ);
-        dirLineLength = Math.abs(eulerY)/60*1000;
+
 
        if(mIsFrontFacing) {
             if (eulerZ < 0) {
@@ -267,13 +268,47 @@ class FaceGraphic extends GraphicOverlay.Graphic {
         ////////////////////////////////////////////////////////////////////////////////////////////////
         //All the Decision Making with reference to Data classes and updating Data classes
 
-        if(Data.Parent.id != -1 && Data.Child.id != -1){
-
+        if(Data.ids.size() == 0){
+            Data.addNew(mFaceId, x, y, height, width );
+            name = Data.UNKNOWN;
         }
-        if (Data.Parent.id == -1 && Data.Child.id == -1){
-            Data.Parent.id = mFaceId;
-            isParent = true;
+        else if(Data.ids.size() == 1){
+            float difX = Math.abs(x-Data.positionX.get(0));
+            float difY = Math.abs(y-Data.positionY.get(0));
+            double rootSquareDiff = Math.sqrt(difX*difX+difY*difY);
+            if(mFaceId != Data.ids.get(0) && rootSquareDiff > 250) {
+                if (faceArea > Data.faceWidth.get(0) * Data.faceHeight.get(0)) {
+                    name = Data.PARENT;
+                    Data.updateParent(mFaceId, x, y, height, width);
+                    Data.addUnknownToChild(0);
+                } else {
+                    name = Data.CHILD;
+                    Data.updateChild(mFaceId, x, y, height, width);
+                    Data.addUnknownToParent(0);
+                }
+                Data.addNew(mFaceId, x, y, height, width);
+            }
+            else{
+                Data.updateNew(0,mFaceId, x, y, height, width);
+                name = Data.UNKNOWN;
+            }
         }
+        else{//2 faces are in the scene already
+            float difX = Math.abs(x-Data.Parent.x);
+            float difY = Math.abs(y-Data.Parent.y);
+            double rootSquareDiff = Math.sqrt(difX*difX+difY*difY);
 
+            if(mFaceId == Data.Parent.id || rootSquareDiff < 250 ){
+                name = Data.PARENT;
+                Data.updateNew(Data.ids.indexOf(Data.Parent.id), mFaceId,x,y,height,width);
+                Data.updateParent(mFaceId,x,y,height,width);
+            }
+            else {
+                name = Data.CHILD;
+                Data.updateNew(Data.ids.indexOf(Data.Child.id), mFaceId,x,y,height,width);
+                Data.updateChild(mFaceId,x,y,height,width);
+            }
+        }
+        canvas.drawText(name + "   id: " + mFaceId + "  "+ Data.ids.size(), x + ID_X_OFFSET, y + ID_Y_OFFSET, mIdPaint);
     }
 }

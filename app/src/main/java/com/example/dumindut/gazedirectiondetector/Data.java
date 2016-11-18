@@ -40,6 +40,14 @@ public class Data {
         faceWidth.add(index, width);
     }
 
+    static void clearArrays(){
+        ids.clear();
+        positionX.clear();;
+        positionY.clear();;
+        faceHeight.clear();
+        faceWidth.clear();
+    }
+
 
     static void addUnknownToParent(int i){
         updateParent(ids.get(i), positionX.get(i), positionY.get(i), faceHeight.get(i),faceWidth.get(i));

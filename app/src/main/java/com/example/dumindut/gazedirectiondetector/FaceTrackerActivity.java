@@ -70,8 +70,10 @@ public final class FaceTrackerActivity extends AppCompatActivity {
         mGraphicOverlay = (GraphicOverlay) findViewById(R.id.faceOverlay);
         textView = (TextView) findViewById(R.id.emotion_text_view);
 
-        final Button button = (Button) findViewById(R.id.flipButton);
-        button.setOnClickListener(mFlipButtonListener);
+        final Button flipButton = (Button) findViewById(R.id.flipButton);
+        final Button resetButton = (Button) findViewById(R.id.resetButton);
+        flipButton.setOnClickListener(mFlipButtonListener);
+        resetButton.setOnClickListener(mResetButtonListener);
 
         if (savedInstanceState != null) {
             mIsFrontFacing = savedInstanceState.getBoolean("IsFrontFacing");
@@ -232,6 +234,20 @@ public final class FaceTrackerActivity extends AppCompatActivity {
                 mCameraSource.release();
                 mCameraSource = null;
             }
+            Data.clearArrays();
+            createCameraSource();
+            startCameraSource();
+        }
+    };
+
+    private View.OnClickListener mResetButtonListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View view) {
+            if (mCameraSource != null) {
+                mCameraSource.release();
+                mCameraSource = null;
+            }
+            Data.clearArrays();
             createCameraSource();
             startCameraSource();
         }

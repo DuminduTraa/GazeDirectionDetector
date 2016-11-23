@@ -54,8 +54,6 @@ public final class FaceTrackerActivity extends AppCompatActivity {
 
     public EmotionServiceRestClient client;
 
-    private int frameCount = 0;
-
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -130,7 +128,7 @@ public final class FaceTrackerActivity extends AppCompatActivity {
         FaceDetector faceDetector1 = new FaceDetector.Builder(context).build();
 
         // facedetector1 is wrapped with emotion detector
-        EmotionDetector emotionDetector = new EmotionDetector(faceDetector1,textView,client,frameCount);
+        EmotionDetector emotionDetector = new EmotionDetector(faceDetector1,textView,client);
 
         //Setting processors for the two detectors
         faceDetector.setProcessor(new MultiProcessor.Builder<>(new GraphicFaceTrackerFactory())
@@ -234,7 +232,7 @@ public final class FaceTrackerActivity extends AppCompatActivity {
                 mCameraSource.release();
                 mCameraSource = null;
             }
-            Data.clearArrays();
+            Data.clearData();
             createCameraSource();
             startCameraSource();
         }
@@ -247,7 +245,7 @@ public final class FaceTrackerActivity extends AppCompatActivity {
                 mCameraSource.release();
                 mCameraSource = null;
             }
-            Data.clearArrays();
+            Data.clearData();
             createCameraSource();
             startCameraSource();
         }

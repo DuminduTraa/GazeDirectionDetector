@@ -33,13 +33,12 @@ public class EmotionDetector extends Detector<Face> {
     private TextView emotionText;
     private EmotionServiceRestClient client;
     private Frame theFrame;
-    private int frameCount;
+    private long lastTime = System.currentTimeMillis();
 
-    EmotionDetector(Detector<Face> delegate, TextView textView, EmotionServiceRestClient client1, int count) {
+    EmotionDetector(Detector<Face> delegate, TextView textView, EmotionServiceRestClient client1) {
         mDelegate = delegate;
         emotionText = textView;
         client = client1;
-        frameCount = count;
     }
 
     @Override
@@ -47,16 +46,12 @@ public class EmotionDetector extends Detector<Face> {
         // *** Custom frame processing code
         theFrame = frame;
 
-        if(frameCount%50==0){
-            doRecognize();
-            frameCount = 1;
-            return mDelegate.detect(frame);
-        }
-        else{
-            frameCount++;
-            return mDelegate.detect(frame);
+        if(System.currentTimeMillis()-lastTime > 3000){
+           doRecognize();
+           lastTime = System.currentTimeMillis();
         }
 
+        return mDelegate.detect(frame);
     }
 
     public boolean isOperational() {
@@ -212,6 +207,4 @@ public class EmotionDetector extends Detector<Face> {
         return Bitmap.createBitmap(bitmapSrc, 0, 0,
                 bitmapSrc.getWidth(), bitmapSrc.getHeight(), matrix, true);
     }
-
-
 }

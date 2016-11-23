@@ -264,8 +264,9 @@ class FaceGraphic extends GraphicOverlay.Graphic {
         float bottom = y + yOffset;
         canvas.drawRect(left, top, right, bottom, mBoxPaint);
 
-        /////////////////////////////////////////////////////////////////////////////////////////////////
-        ////////////////////////////////////////////////////////////////////////////////////////////////
+        ///////////////////////////////////////////////////////////////////////////////////////////////
+        ///////////////////////////////////////////////////////////////////////////////////////////////
+        ///////////////////////////////////////////////////////////////////////////////////////////////
         //All the Decision Making with reference to Data classes and updating Data classes
 
         if(Data.ids.size() == 0){
@@ -277,16 +278,8 @@ class FaceGraphic extends GraphicOverlay.Graphic {
             float difY = Math.abs(y-Data.positionY.get(0));
             double rootSquareDiff = Math.sqrt(difX*difX+difY*difY);
             if(mFaceId != Data.ids.get(0) && rootSquareDiff > 250) {
-                if (faceArea > Data.faceWidth.get(0) * Data.faceHeight.get(0)) {
-                    name = Data.PARENT;
-                    Data.updateParent(mFaceId, x, y, height, width);
-                    Data.addUnknownToChild(0);
-                } else {
-                    name = Data.CHILD;
-                    Data.updateChild(mFaceId, x, y, height, width);
-                    Data.addUnknownToParent(0);
-                }
                 Data.addNew(mFaceId, x, y, height, width);
+                name = Data.UNKNOWN;
             }
             else{
                 Data.updateNew(0,mFaceId, x, y, height, width);
@@ -294,21 +287,72 @@ class FaceGraphic extends GraphicOverlay.Graphic {
             }
         }
         else{//2 faces are in the scene already
-            float difX = Math.abs(x-Data.Parent.x);
-            float difY = Math.abs(y-Data.Parent.y);
-            double rootSquareDiff = Math.sqrt(difX*difX+difY*difY);
-
-            if(mFaceId == Data.Parent.id || rootSquareDiff < 250 ){
-                name = Data.PARENT;
-                Data.updateNew(Data.ids.indexOf(Data.Parent.id), mFaceId,x,y,height,width);
-                Data.updateParent(mFaceId,x,y,height,width);
+            if(Data.faceCount < 100){
+                float difX = Math.abs(x-Data.positionX.get(0));
+                float difY = Math.abs(y-Data.positionY.get(0));
+                double rootSquareDiff = Math.sqrt(difX*difX+difY*difY);
+                if(mFaceId == Data.ids.get(0) || rootSquareDiff < 250){
+                    Data.areadiff += faceArea - Data.faceHeight.get(1)*Data.faceHeight.get(1);
+                    Data.updateNew(0,mFaceId,x,y,height,width);
+                }
+                else{
+                    Data.areadiff += Data.faceHeight.get(0)*Data.faceHeight.get(0) - faceArea;
+                    Data.updateNew(1,mFaceId,x,y,height,width);
+                }
+                name = Data.UNKNOWN;
+                Data.faceCount++;
             }
-            else {
-                name = Data.CHILD;
-                Data.updateNew(Data.ids.indexOf(Data.Child.id), mFaceId,x,y,height,width);
-                Data.updateChild(mFaceId,x,y,height,width);
+            else if(Data.faceCount == 100){
+                float difX = Math.abs(x-Data.positionX.get(0));
+                float difY = Math.abs(y-Data.positionY.get(0));
+                double rootSquareDiff = Math.sqrt(difX*difX+difY*difY);
+                if(Data.areadiff > 2500){
+                    if(mFaceId == Data.ids.get(0) || rootSquareDiff < 250){
+                        name = Data.PARENT;
+                        Data.updateNew(0,mFaceId,x,y,height,width);
+                    }
+                    else{
+                        name = Data.CHILD;
+                        Data.updateNew(1,mFaceId,x,y,height,width);
+                    }
+                    Data.addUnknownToParent(0);
+                    Data.addUnknownToChild(1);
+                }
+                else if(Data.areadiff < -2500){
+                    if(mFaceId == Data.ids.get(0) || rootSquareDiff < 250){
+                        name = Data.CHILD;
+                        Data.updateNew(0,mFaceId,x,y,height,width);
+                    }
+                    else{
+                        name = Data.PARENT;
+                        Data.updateNew(1,mFaceId,x,y,height,width);
+                    }
+                    Data.addUnknownToParent(1);
+                    Data.addUnknownToChild(0);
+                }
+                else{
+                    Data.faceCount = 0;
+                    name = Data.UNKNOWN;
+                }
+            }
+            else{
+                float difX = Math.abs(x-Data.Parent.x);
+                float difY = Math.abs(y-Data.Parent.y);
+                double rootSquareDiff = Math.sqrt(difX*difX+difY*difY);
+
+                if(mFaceId == Data.Parent.id || rootSquareDiff < 250 ){
+                    name = Data.PARENT;
+                    Data.updateNew(Data.ids.indexOf(Data.Parent.id), mFaceId,x,y,height,width);
+                    Data.updateParent(mFaceId,x,y,height,width);
+                }
+                else {
+                    name = Data.CHILD;
+                    Data.updateNew(Data.ids.indexOf(Data.Child.id), mFaceId,x,y,height,width);
+                    Data.updateChild(mFaceId,x,y,height,width);
+                }
             }
         }
-        canvas.drawText(name + "   id: " + mFaceId + "  "+ Data.ids.size(), x + ID_X_OFFSET, y + ID_Y_OFFSET, mIdPaint);
+
+        canvas.drawText(name, x + ID_X_OFFSET, y + ID_Y_OFFSET, mIdPaint);
     }
 }

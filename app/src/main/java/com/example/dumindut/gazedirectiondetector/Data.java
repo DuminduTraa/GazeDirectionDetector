@@ -11,6 +11,9 @@ public class Data {
     public static final String CHILD = "child";
     public static final String UNKNOWN = "unknown";
 
+    public static int faceCount = 0;
+    public static float areadiff = 0; //  0 - 1
+
 
     public static ArrayList<Integer> ids = new ArrayList<Integer>();
     public static ArrayList<Float> positionX = new ArrayList<Float>();
@@ -40,12 +43,14 @@ public class Data {
         faceWidth.add(index, width);
     }
 
-    static void clearArrays(){
+    static void clearData(){
         ids.clear();
         positionX.clear();;
         positionY.clear();;
         faceHeight.clear();
         faceWidth.clear();
+
+        faceCount = 0;
     }
 
 

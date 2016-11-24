@@ -86,6 +86,8 @@ public class Data {
         public static float y;
         public static float faceWidth;
         public static float faceHeight;
+
+        public static long lastTime;
     }
 
 
@@ -95,5 +97,7 @@ public class Data {
         public static float y;
         public static float faceWidth;
         public static float faceHeight;
+
+        public static long lastTime;
     }
 }

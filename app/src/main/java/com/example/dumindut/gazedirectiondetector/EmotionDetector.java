@@ -33,12 +33,13 @@ public class EmotionDetector extends Detector<Face> {
     private TextView emotionText;
     private EmotionServiceRestClient client;
     private Frame theFrame;
-    private long lastTime = System.currentTimeMillis();
+    private long lastTime;
 
     EmotionDetector(Detector<Face> delegate, TextView textView, EmotionServiceRestClient client1) {
         mDelegate = delegate;
         emotionText = textView;
         client = client1;
+        lastTime = System.currentTimeMillis();
     }
 
     @Override

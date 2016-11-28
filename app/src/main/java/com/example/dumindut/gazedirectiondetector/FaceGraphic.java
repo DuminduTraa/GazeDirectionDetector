@@ -10,7 +10,6 @@ import android.graphics.Paint;
 
 import com.example.dumindut.gazedirectiondetector.ui.camera.GraphicOverlay;
 import com.google.android.gms.vision.face.Face;
-import com.google.android.gms.vision.face.Landmark;
 
 /*Graphic instance for rendering face position, orientation, and landmarks within an associated graphic overlay view.*/
 class FaceGraphic extends GraphicOverlay.Graphic {
@@ -208,23 +207,6 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                 // Main face processing task happens once in each 300 milli seconds
                 if(isSignificantFace){
 
-                    float left_eye_x = -1;
-                    float left_eye_y = -1;
-                    float right_eye_x = -1;
-                    float right_eye_y = -1;
-                    float mouth_x = -1;
-                    float mouth_y = -1;
-                    float left_mouth_x = -1;
-                    float left_mouth_y = -1;
-                    float right_mouth_x = -1;
-                    float right_mouth_y = -1;
-                    float left_cheek_x = -1;
-                    float left_cheek_y = -1;
-                    float right_cheek_x = -1;
-                    float right_cheek_y = -1;
-                    float nose_x = -1;
-                    float nose_y = -1;
-
                     float eulerY = face.getEulerY();
                     float eulerZ = face.getEulerZ();
 
@@ -235,105 +217,59 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                     double stopX;
                     double stopY;
 
-                    canvas.drawText("rotationY: " + String.format("%.2f", eulerY), x-100,y-150, mIdPaint);
-                    canvas.drawText("rotationZ: " + String.format("%.2f", eulerZ), x-100,y-100, mIdPaint);
 
+                    //Drawing a looking direction line from the middle of the face. Using only rotation details
+                    //Looking from selfie camera. All the details according to the frame, not person
 
-                    for (Landmark landmark : face.getLandmarks()) {
-                        if (landmark.getType() == Landmark.RIGHT_EYE) {
-                            right_eye_x = translateX(landmark.getPosition().x);
-                            right_eye_y = translateY(landmark.getPosition().y);
-                            canvas.drawCircle(right_eye_x, right_eye_y, FACE_POSITION_RADIUS, mFacePositionPaint);
+                    if(mIsFrontFacing) {
+                        if (eulerZ < 0) {
+                            isThetaPositive = false;
+                        } else {
+                            isThetaPositive = true;
                         }
-                        else if (landmark.getType() == Landmark.LEFT_EYE) {
-                            left_eye_x = translateX(landmark.getPosition().x);
-                            left_eye_y = translateY(landmark.getPosition().y);
-                            canvas.drawCircle(left_eye_x, left_eye_y, FACE_POSITION_RADIUS, mFacePositionPaint);
+                        if (eulerY < 0) {
+                            isYLeft = false;
+                        }       // Left is preview frame's left
+                        else {
+                            isYLeft = true;
                         }
-                        else if (landmark.getType() == Landmark.LEFT_CHEEK) {
-                            left_cheek_x = translateX(landmark.getPosition().x);
-                            left_cheek_y = translateY(landmark.getPosition().y);
-                            canvas.drawCircle(left_cheek_x, left_cheek_y, FACE_POSITION_RADIUS, mFacePositionPaint);
-                        }
-                        else if (landmark.getType() == Landmark.RIGHT_CHEEK) {
-                            right_cheek_x = translateX(landmark.getPosition().x);
-                            right_cheek_y = translateY(landmark.getPosition().y);
-                            canvas.drawCircle(right_cheek_x, right_cheek_y, FACE_POSITION_RADIUS, mFacePositionPaint);
-                        }
-                        else if (landmark.getType() == Landmark.NOSE_BASE) {
-                            nose_x = translateX(landmark.getPosition().x);
-                            nose_y = translateY(landmark.getPosition().y);
-                            canvas.drawCircle(nose_x, nose_y, FACE_POSITION_RADIUS, mFacePositionPaint);
-                        }
-                        else if (landmark.getType() == Landmark.LEFT_MOUTH) {
-                            left_mouth_x = translateX(landmark.getPosition().x);
-                            left_mouth_y = translateY(landmark.getPosition().y);
-                            canvas.drawCircle(left_mouth_x, left_mouth_y, FACE_POSITION_RADIUS, mFacePositionPaint);
-                        }
-                        else if (landmark.getType() == Landmark.RIGHT_MOUTH) {
-                            right_mouth_x = translateX(landmark.getPosition().x);
-                            right_mouth_y = translateY(landmark.getPosition().y);
-                            canvas.drawCircle(right_mouth_x, right_mouth_y, FACE_POSITION_RADIUS, mFacePositionPaint);
-                        }
-                        else if (landmark.getType() == Landmark.BOTTOM_MOUTH) {
-                            mouth_x = translateX(landmark.getPosition().x);
-                            mouth_y = translateY(landmark.getPosition().y);
-                            canvas.drawCircle( mouth_x, mouth_y, FACE_POSITION_RADIUS, mFacePositionPaint);
-                        }
-
-                        //Drawing a looking direction line from the middle of the face. Using only rotation details
-                        //Looking from selfie camera. All the details according to the frame, not person
-
-                        if(mIsFrontFacing) {
-                            if (eulerZ < 0) {
-                                isThetaPositive = false;
-                            } else {
-                                isThetaPositive = true;
-                            }
-                            if (eulerY < 0) {
-                                isYLeft = false;
-                            }       // Left is preview frame's left
-                            else {
-                                isYLeft = true;
-                            }
-                        }
-
-                        else{
-                            if (eulerZ > 0) {
-                                isThetaPositive = false;
-                            } else {
-                                isThetaPositive = true;
-                            }
-                            if (eulerY > 0) {
-                                isYLeft = false;
-                            }       // Left is preview frame's left
-                            else {
-                                isYLeft = true;
-                            }
-                        }
-
-                        if(isThetaPositive && isYLeft){
-                            stopX = x-dirLineLength*Math.cos(Math.toRadians(theta));
-                            stopY = y-dirLineLength*Math.sin(Math.toRadians(theta));
-                            canvas.drawLine(x,y,(float)stopX,(float)stopY,mFacePositionPaint);
-                        }
-                        else if(isThetaPositive && !isYLeft){
-                            stopX = x+dirLineLength*Math.cos(Math.toRadians(theta));
-                            stopY = y+dirLineLength*Math.sin(Math.toRadians(theta));
-                            canvas.drawLine(x,y,(float)stopX,(float)stopY,mFacePositionPaint);
-                        }
-                        else if(!isThetaPositive && isYLeft){
-                            stopX = x-dirLineLength*Math.cos(Math.toRadians(theta));
-                            stopY = y+dirLineLength*Math.sin(Math.toRadians(theta));
-                            canvas.drawLine(x,y,(float)stopX,(float)stopY,mFacePositionPaint);
-                        }
-                        else{
-                            stopX = x+dirLineLength*Math.cos(Math.toRadians(theta));
-                            stopY = y-dirLineLength*Math.sin(Math.toRadians(theta));
-                            canvas.drawLine(x,y,(float)stopX,(float)stopY,mFacePositionPaint);
-                        }
-
                     }
+
+                    else{
+                        if (eulerZ > 0) {
+                            isThetaPositive = false;
+                        } else {
+                            isThetaPositive = true;
+                        }
+                        if (eulerY > 0) {
+                            isYLeft = false;
+                        }       // Left is preview frame's left
+                        else {
+                            isYLeft = true;
+                        }
+                    }
+
+                    if(isThetaPositive && isYLeft){
+                        stopX = x-dirLineLength*Math.cos(Math.toRadians(theta));
+                        stopY = y-dirLineLength*Math.sin(Math.toRadians(theta));
+                        canvas.drawLine(x,y,(float)stopX,(float)stopY,mFacePositionPaint);
+                    }
+                    else if(isThetaPositive && !isYLeft){
+                        stopX = x+dirLineLength*Math.cos(Math.toRadians(theta));
+                        stopY = y+dirLineLength*Math.sin(Math.toRadians(theta));
+                        canvas.drawLine(x,y,(float)stopX,(float)stopY,mFacePositionPaint);
+                    }
+                    else if(!isThetaPositive && isYLeft){
+                        stopX = x-dirLineLength*Math.cos(Math.toRadians(theta));
+                        stopY = y+dirLineLength*Math.sin(Math.toRadians(theta));
+                        canvas.drawLine(x,y,(float)stopX,(float)stopY,mFacePositionPaint);
+                    }
+                    else{
+                        stopX = x+dirLineLength*Math.cos(Math.toRadians(theta));
+                        stopY = y-dirLineLength*Math.sin(Math.toRadians(theta));
+                        canvas.drawLine(x,y,(float)stopX,(float)stopY,mFacePositionPaint);
+                    }
+
                 }
             }
         }

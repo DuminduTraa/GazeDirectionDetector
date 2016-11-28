@@ -127,7 +127,7 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                 float difX = Math.abs(x-Data.positionX.get(0));
                 float difY = Math.abs(y-Data.positionY.get(0));
                 double rootSquareDiff = Math.sqrt(difX*difX+difY*difY);
-                if(mFaceId == Data.ids.get(0) || rootSquareDiff < 250){
+                if(mFaceId == Data.ids.get(0) || rootSquareDiff < 100){
                     Data.areadiff += faceArea - Data.faceHeight.get(1)*Data.faceHeight.get(1);
                     Data.updateNew(0,mFaceId,x,y,height,width);
                 }
@@ -144,7 +144,7 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                 float difY = Math.abs(y-Data.positionY.get(0));
                 double rootSquareDiff = Math.sqrt(difX*difX+difY*difY);
                 if(Data.areadiff > 2500){
-                    if(mFaceId == Data.ids.get(0) || rootSquareDiff < 250){
+                    if(mFaceId == Data.ids.get(0) || rootSquareDiff < 100){
                         name = Data.PARENT;
                         Data.updateNew(0,mFaceId,x,y,height,width);
                     }
@@ -155,9 +155,10 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                     Data.addUnknownToParent(0);
                     Data.addUnknownToChild(1);
                     Data.Parent.lastTime = Data.Child.lastTime = currentTime;
+                    Data.isIdentified = true;
                 }
                 else if(Data.areadiff < -2500){
-                    if(mFaceId == Data.ids.get(0) || rootSquareDiff < 250){
+                    if(mFaceId == Data.ids.get(0) || rootSquareDiff < 100){
                         name = Data.CHILD;
                         Data.updateNew(0,mFaceId,x,y,height,width);
                     }
@@ -168,6 +169,7 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                     Data.addUnknownToParent(1);
                     Data.addUnknownToChild(0);
                     Data.Parent.lastTime = Data.Child.lastTime = currentTime;
+                    Data.isIdentified = true;
                 }
                 else{
                     Data.faceCount = 0;
@@ -181,7 +183,7 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                 double rootSquareDiff = Math.sqrt(difX*difX+difY*difY);
 
                 //Updating parent, child basic information and keep tracking.
-                if(mFaceId == Data.Parent.id || rootSquareDiff < 250 ){
+                if(mFaceId == Data.Parent.id || rootSquareDiff < 100 ){
                     name = Data.PARENT;
                     Data.updateNew(Data.ids.indexOf(Data.Parent.id), mFaceId,x,y,height,width);
                     Data.updateParent(mFaceId,x,y,height,width);

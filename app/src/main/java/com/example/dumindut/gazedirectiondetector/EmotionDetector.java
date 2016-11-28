@@ -47,7 +47,7 @@ public class EmotionDetector extends Detector<Face> {
         // *** Custom frame processing code
         theFrame = frame;
 
-        if(System.currentTimeMillis()-lastTime > 3000){
+        if(System.currentTimeMillis()-lastTime > 3000 && Data.isIdentified){
            doRecognize();
            lastTime = System.currentTimeMillis();
         }

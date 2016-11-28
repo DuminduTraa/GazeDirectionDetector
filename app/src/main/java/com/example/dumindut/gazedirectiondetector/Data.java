@@ -14,6 +14,8 @@ public class Data {
     public static int faceCount = 0;
     public static float areadiff = 0; //  0 - 1
 
+    public static boolean isIdentified = false;
+
 
     public static ArrayList<Integer> ids = new ArrayList<Integer>();
     public static ArrayList<Float> positionX = new ArrayList<Float>();
@@ -51,6 +53,7 @@ public class Data {
         faceWidth.clear();
 
         faceCount = 0;
+        isIdentified = false;
     }
 
 

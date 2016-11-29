@@ -213,7 +213,7 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                     float theta = Math.abs(eulerZ);
                     float dirLineLength = Math.abs(eulerY)/60*1000;
                     boolean isThetaPositive;
-                    boolean isYLeft;
+                    boolean isLeft;
                     double stopX;
                     double stopY;
 
@@ -228,10 +228,10 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                             isThetaPositive = true;
                         }
                         if (eulerY < 0) {
-                            isYLeft = false;
+                            isLeft = false;
                         }       // Left is preview frame's left
                         else {
-                            isYLeft = true;
+                            isLeft = true;
                         }
                     }
 
@@ -242,24 +242,26 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                             isThetaPositive = true;
                         }
                         if (eulerY > 0) {
-                            isYLeft = false;
+                            isLeft = false;
                         }       // Left is preview frame's left
                         else {
-                            isYLeft = true;
+                            isLeft = true;
                         }
                     }
 
-                    if(isThetaPositive && isYLeft){
+                    //Defining a global theta taking into consideration isThetaPositive and IsLeft
+
+                    if(isThetaPositive && isLeft){
                         stopX = x-dirLineLength*Math.cos(Math.toRadians(theta));
                         stopY = y-dirLineLength*Math.sin(Math.toRadians(theta));
                         canvas.drawLine(x,y,(float)stopX,(float)stopY,mFacePositionPaint);
                     }
-                    else if(isThetaPositive && !isYLeft){
+                    else if(isThetaPositive && !isLeft){
                         stopX = x+dirLineLength*Math.cos(Math.toRadians(theta));
                         stopY = y+dirLineLength*Math.sin(Math.toRadians(theta));
                         canvas.drawLine(x,y,(float)stopX,(float)stopY,mFacePositionPaint);
                     }
-                    else if(!isThetaPositive && isYLeft){
+                    else if(!isThetaPositive && isLeft){
                         stopX = x-dirLineLength*Math.cos(Math.toRadians(theta));
                         stopY = y+dirLineLength*Math.sin(Math.toRadians(theta));
                         canvas.drawLine(x,y,(float)stopX,(float)stopY,mFacePositionPaint);
@@ -268,6 +270,12 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                         stopX = x+dirLineLength*Math.cos(Math.toRadians(theta));
                         stopY = y-dirLineLength*Math.sin(Math.toRadians(theta));
                         canvas.drawLine(x,y,(float)stopX,(float)stopY,mFacePositionPaint);
+                    }
+
+                    if(name == Data.PARENT){
+                        float thetaThreshold;
+                        canvas.drawLine(x,y,Data.Child.x,Data.Child.y-translateY(Data.Child.faceHeight/2),mFacePositionPaint);
+                        //canvas.drawLine(x,y,Data.Child.x,Data.Child.y,mFacePositionPaint);
                     }
 
                 }

@@ -217,6 +217,8 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                     double stopX;
                     double stopY;
 
+                    float globalTheta; // 0-360
+
 
                     //Drawing a looking direction line from the middle of the face. Using only rotation details
                     //Looking from selfie camera. All the details according to the frame, not person
@@ -249,32 +251,28 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                         }
                     }
 
-                    //Defining a global theta taking into consideration isThetaPositive and IsLeft
+                    //Defining global theta(0-360) taking into consideration isThetaPositive and IsLeft
 
-                    if(isThetaPositive && isLeft){
-                        stopX = x-dirLineLength*Math.cos(Math.toRadians(theta));
-                        stopY = y-dirLineLength*Math.sin(Math.toRadians(theta));
-                        canvas.drawLine(x,y,(float)stopX,(float)stopY,mFacePositionPaint);
+                    if(isThetaPositive && isLeft){ // Third Quadrant (180-270) range 180(0)-240(60)
+                        globalTheta = 180 + theta;
                     }
-                    else if(isThetaPositive && !isLeft){
-                        stopX = x+dirLineLength*Math.cos(Math.toRadians(theta));
-                        stopY = y+dirLineLength*Math.sin(Math.toRadians(theta));
-                        canvas.drawLine(x,y,(float)stopX,(float)stopY,mFacePositionPaint);
+                    else if(isThetaPositive && !isLeft){    // First Quadrant (0-90) range 0(0)-60(60)
+                        globalTheta = theta;
                     }
-                    else if(!isThetaPositive && isLeft){
-                        stopX = x-dirLineLength*Math.cos(Math.toRadians(theta));
-                        stopY = y+dirLineLength*Math.sin(Math.toRadians(theta));
-                        canvas.drawLine(x,y,(float)stopX,(float)stopY,mFacePositionPaint);
+                    else if(!isThetaPositive && isLeft){   // Second Quadrant(90-180) range 120(60)-180(0)
+                        globalTheta =  180 - theta;
                     }
-                    else{
-                        stopX = x+dirLineLength*Math.cos(Math.toRadians(theta));
-                        stopY = y-dirLineLength*Math.sin(Math.toRadians(theta));
-                        canvas.drawLine(x,y,(float)stopX,(float)stopY,mFacePositionPaint);
+                    else{  //4th Quadrant (270-360)  range 300(60)-360(0)
+                        globalTheta = 360 - theta;
                     }
+
+                    stopX = x+dirLineLength*Math.cos(Math.toRadians(globalTheta));
+                    stopY = y+dirLineLength*Math.sin(Math.toRadians(globalTheta));
+                    canvas.drawLine(x,y,(float)stopX,(float)stopY,mFacePositionPaint);
 
                     if(name == Data.PARENT){
                         float thetaThreshold;
-                        canvas.drawLine(x,y,Data.Child.x,Data.Child.y-translateY(Data.Child.faceHeight/2),mFacePositionPaint);
+                        //canvas.drawLine(x,y,Data.Child.x,Data.Child.y-translateY(Data.Child.faceHeight/2),mFacePositionPaint);
                         //canvas.drawLine(x,y,Data.Child.x,Data.Child.y,mFacePositionPaint);
                     }
 

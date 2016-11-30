@@ -219,36 +219,20 @@ class FaceGraphic extends GraphicOverlay.Graphic {
 
                     float globalTheta; // 0-360
 
-
                     //Drawing a looking direction line from the middle of the face. Using only rotation details
                     //Looking from selfie camera. All the details according to the frame, not person
 
                     if(mIsFrontFacing) {
-                        if (eulerZ < 0) {
-                            isThetaPositive = false;
-                        } else {
-                            isThetaPositive = true;
-                        }
-                        if (eulerY < 0) {
-                            isLeft = false;
-                        }       // Left is preview frame's left
-                        else {
-                            isLeft = true;
-                        }
+                        if (eulerZ < 0) {isThetaPositive = false;}
+                        else {isThetaPositive = true;}
+                        if (eulerY < 0) {isLeft = false;}       // Left is preview frame's left
+                        else {isLeft = true;}
                     }
-
                     else{
-                        if (eulerZ > 0) {
-                            isThetaPositive = false;
-                        } else {
-                            isThetaPositive = true;
-                        }
-                        if (eulerY > 0) {
-                            isLeft = false;
-                        }       // Left is preview frame's left
-                        else {
-                            isLeft = true;
-                        }
+                        if (eulerZ > 0) {isThetaPositive = false;}
+                        else {isThetaPositive = true;}
+                        if (eulerY > 0) {isLeft = false;}       // Left is preview frame's left
+                        else {isLeft = true;}
                     }
 
                     //Defining global theta(0-360) taking into consideration isThetaPositive and IsLeft
@@ -271,7 +255,12 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                     canvas.drawLine(x,y,(float)stopX,(float)stopY,mFacePositionPaint);
 
                     if(name == Data.PARENT){
-                        float thetaThreshold;
+                        float thetaThreshold1;
+                        float thetaThreshold2;
+                        float thetaThresholdHigh;
+                        float thetaThresholdLow;
+
+
                         //canvas.drawLine(x,y,Data.Child.x,Data.Child.y-translateY(Data.Child.faceHeight/2),mFacePositionPaint);
                         //canvas.drawLine(x,y,Data.Child.x,Data.Child.y,mFacePositionPaint);
                     }

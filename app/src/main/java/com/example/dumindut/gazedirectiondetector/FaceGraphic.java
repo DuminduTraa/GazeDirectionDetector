@@ -254,9 +254,10 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                     stopY = y+dirLineLength*Math.sin(Math.toRadians(globalTheta));
                     canvas.drawLine(x,y,(float)stopX,(float)stopY,mFacePositionPaint);
 
+                    //Detecting whether parent looking at child
                     if(name == Data.PARENT){
-                        double thetaThreshold1;   //to y-faceheight/2
-                        double thetaThreshold2;     //to y+faceheight/2
+                        double thetaThreshold1;   //to y-faceheight/3
+                        double thetaThreshold2;     //to y+faceheight/3
                         double thetaThresholdHigh;
                         double thetaThresholdLow;
 
@@ -291,6 +292,45 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                             else{Data.isParentLookingAtChild=false;}
                         }
                     }
+                    //Detecting whether child looking at parent
+                    else{
+                        double thetaThreshold1;   //to y-faceheight/3
+                        double thetaThreshold2;     //to y+faceheight/3
+                        double thetaThresholdHigh;
+                        double thetaThresholdLow;
+
+                        thetaThreshold1 = Math.atan2(Data.Parent.y-translateY(Data.Parent.faceHeight/3)-y, Data.Parent.x-x);
+                        thetaThreshold2 = Math.atan2(Data.Parent.y+translateY(Data.Parent.faceHeight/3)-y, Data.Parent.x-x);
+                        thetaThreshold1 = Math.toDegrees(thetaThreshold1);
+                        thetaThreshold2 = Math.toDegrees(thetaThreshold2);
+
+                        if(thetaThreshold1>thetaThreshold2){
+                            thetaThresholdHigh = thetaThreshold1;
+                            thetaThresholdLow = thetaThreshold2;
+                        }
+                        else{
+                            thetaThresholdHigh = thetaThreshold2;
+                            thetaThresholdLow = thetaThreshold1;
+                        }
+
+                        //if the two thresholds fall in first and fourth quadrants
+                        if(thetaThresholdHigh>270 && thetaThresholdLow<90){
+                            if(globalTheta>thetaThresholdHigh && globalTheta<thetaThresholdLow){
+                                Data.isChildLookingAtParent=true;
+                                Log.e("FaceGraphic","Child looking at parent");
+                            }
+                            else{Data.isChildLookingAtParent=false;}
+                        }
+                        //other cases
+                        else{
+                            if(globalTheta>thetaThresholdLow && globalTheta<thetaThresholdHigh){
+                                Data.isChildLookingAtParent=true;
+                                Log.e("FaceGraphic","Child looking at parent");
+                            }
+                            else{Data.isChildLookingAtParent=false;}
+                        }
+                    }
+                    Log.e("faceGraphic","Eye Contact");
                 }
             }
         }

@@ -26,7 +26,7 @@ public class Data {
     //Variables for the features
     public static boolean isParentLookingAtChild = false;
     public static boolean isChildLookingAtParent = false;
-    public static boolean hasEyeContact = false;
+    public static boolean hasEyeContact = isParentLookingAtChild&&isChildLookingAtParent;
     public static boolean hasJointAttention = false;
     public static String  parentEmot2ion1;
     public static String parentEmotion2;

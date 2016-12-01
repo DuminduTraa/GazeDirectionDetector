@@ -7,6 +7,7 @@ package com.example.dumindut.gazedirectiondetector;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.util.Log;
 
 import com.example.dumindut.gazedirectiondetector.ui.camera.GraphicOverlay;
 import com.google.android.gms.vision.face.Face;
@@ -210,7 +211,7 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                     float eulerY = face.getEulerY();
                     float eulerZ = face.getEulerZ();
 
-                    float theta = Math.abs(eulerZ);
+                    float theta = Math.abs(eulerZ); //0-60
                     float dirLineLength = Math.abs(eulerY)/60*1000;
                     boolean isThetaPositive;
                     boolean isLeft;
@@ -236,7 +237,6 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                     }
 
                     //Defining global theta(0-360) taking into consideration isThetaPositive and IsLeft
-
                     if(isThetaPositive && isLeft){ // Third Quadrant (180-270) range 180(0)-240(60)
                         globalTheta = 180 + theta;
                     }
@@ -255,16 +255,42 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                     canvas.drawLine(x,y,(float)stopX,(float)stopY,mFacePositionPaint);
 
                     if(name == Data.PARENT){
-                        float thetaThreshold1;
-                        float thetaThreshold2;
-                        float thetaThresholdHigh;
-                        float thetaThresholdLow;
+                        double thetaThreshold1;   //to y-faceheight/2
+                        double thetaThreshold2;     //to y+faceheight/2
+                        double thetaThresholdHigh;
+                        double thetaThresholdLow;
 
+                        thetaThreshold1 = Math.atan2(Data.Child.y-translateY(Data.Child.faceHeight/3)-y, Data.Child.x-x);
+                        thetaThreshold2 = Math.atan2(Data.Child.y+translateY(Data.Child.faceHeight/3)-y, Data.Child.x-x);
+                        thetaThreshold1 = Math.toDegrees(thetaThreshold1);
+                        thetaThreshold2 = Math.toDegrees(thetaThreshold2);
 
-                        //canvas.drawLine(x,y,Data.Child.x,Data.Child.y-translateY(Data.Child.faceHeight/2),mFacePositionPaint);
-                        //canvas.drawLine(x,y,Data.Child.x,Data.Child.y,mFacePositionPaint);
+                        if(thetaThreshold1>thetaThreshold2){
+                            thetaThresholdHigh = thetaThreshold1;
+                            thetaThresholdLow = thetaThreshold2;
+                        }
+                        else{
+                            thetaThresholdHigh = thetaThreshold2;
+                            thetaThresholdLow = thetaThreshold1;
+                        }
+
+                        //if the two thresholds fall in first and fourth quadrants
+                        if(thetaThresholdHigh>270 && thetaThresholdLow<90){
+                            if(globalTheta>thetaThresholdHigh && globalTheta<thetaThresholdLow){
+                                Data.isParentLookingAtChild=true;
+                                Log.e("FaceGraphic","Parent looking at child");
+                            }
+                            else{Data.isParentLookingAtChild=false;}
+                        }
+                        //other cases
+                        else{
+                            if(globalTheta>thetaThresholdLow && globalTheta<thetaThresholdHigh){
+                                Data.isParentLookingAtChild=true;
+                                Log.e("FaceGraphic","Parent looking at child");
+                            }
+                            else{Data.isParentLookingAtChild=false;}
+                        }
                     }
-
                 }
             }
         }

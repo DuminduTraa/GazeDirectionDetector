@@ -23,6 +23,19 @@ public class Data {
     public static ArrayList<Float> faceHeight = new ArrayList<Float>();
     public static ArrayList<Float> faceWidth = new ArrayList<Float>();
 
+    //Variables for the features
+    public static boolean isParentLookingAtChild = false;
+    public static boolean isChildLookingAtParent = false;
+    public static boolean hasEyeContact = false;
+    public static boolean hasJointAttention = false;
+    public static String  parentEmot2ion1;
+    public static String parentEmotion2;
+    public static float parentEmotion1Value;
+    public static float parentEmotion2Value;
+    public static String childEmotion1;
+    public static String childEmotion2;
+    public static float childEmotion1Value;
+    public static float getChildEmotion2Value;
 
     static void addNew(int id, float x, float y, float height, float width){
         ids.add(id);

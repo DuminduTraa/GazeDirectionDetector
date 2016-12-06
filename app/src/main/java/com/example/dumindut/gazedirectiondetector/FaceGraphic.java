@@ -330,7 +330,9 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                             else{Data.isChildLookingAtParent=false;}
                         }
                     }
-                    Log.e("faceGraphic","Eye Contact");
+                    if(Data.hasEyeContact){
+                        Log.e("faceGraphic","Eye Contact");
+                    }
                 }
             }
         }

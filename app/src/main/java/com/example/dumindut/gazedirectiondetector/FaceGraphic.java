@@ -82,21 +82,25 @@ class FaceGraphic extends GraphicOverlay.Graphic {
         float height = face.getHeight();
         float faceArea = width*height;
 
-        float x = translateX(face.getPosition().x + width / 2);
-        float y = translateY(face.getPosition().y + height / 2);
+        float x = face.getPosition().x + width / 2;
+        float y = face.getPosition().y + height / 2;
+        float x_canvas = translateX(x);
+        float y_canvas = scaleY(y);
+
+        double rootSquareDifThreshold = Math.sqrt((width/2)*(width/2)+(height/2)*(height/2));
 
         String name;
         long currentTime = System.currentTimeMillis();
 
-        canvas.drawCircle(x, y, FACE_POSITION_RADIUS+5.0f, mFacePositionPaint);
+        canvas.drawCircle(x_canvas, y_canvas, FACE_POSITION_RADIUS+5.0f, mFacePositionPaint);
 
         // Draws a bounding box around the face.
         float xOffset = scaleX(face.getWidth() / 2.0f);
         float yOffset = scaleY(face.getHeight() / 2.0f);
-        float left = x - xOffset;
-        float top = y - yOffset;
-        float right = x + xOffset;
-        float bottom = y + yOffset;
+        float left = x_canvas - xOffset;
+        float top = y_canvas - yOffset;
+        float right = x_canvas + xOffset;
+        float bottom = y_canvas + yOffset;
         canvas.drawRect(left, top, right, bottom, mBoxPaint);
 
         ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -113,7 +117,7 @@ class FaceGraphic extends GraphicOverlay.Graphic {
             float difX = Math.abs(x-Data.positionX.get(0));
             float difY = Math.abs(y-Data.positionY.get(0));
             double rootSquareDiff = Math.sqrt(difX*difX+difY*difY);
-            if(mFaceId != Data.ids.get(0) && rootSquareDiff > 250) {
+            if(mFaceId != Data.ids.get(0) && rootSquareDiff > rootSquareDifThreshold) {
                 Data.addNew(mFaceId, x, y, height, width);
                 name = Data.UNKNOWN;
             }
@@ -127,7 +131,7 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                 float difX = Math.abs(x-Data.positionX.get(0));
                 float difY = Math.abs(y-Data.positionY.get(0));
                 double rootSquareDiff = Math.sqrt(difX*difX+difY*difY);
-                if(mFaceId == Data.ids.get(0) || rootSquareDiff < 100){
+                if(mFaceId == Data.ids.get(0) || rootSquareDiff < rootSquareDifThreshold){
                     Data.areadiff += faceArea - Data.faceHeight.get(1)*Data.faceHeight.get(1);
                     Data.updateNew(0,mFaceId,x,y,height,width);
                 }
@@ -144,7 +148,7 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                 float difY = Math.abs(y-Data.positionY.get(0));
                 double rootSquareDiff = Math.sqrt(difX*difX+difY*difY);
                 if(Data.areadiff > 2500){
-                    if(mFaceId == Data.ids.get(0) || rootSquareDiff < 100){
+                    if(mFaceId == Data.ids.get(0) || rootSquareDiff < rootSquareDifThreshold){
                         name = Data.PARENT;
                         Data.updateNew(0,mFaceId,x,y,height,width);
                     }
@@ -158,7 +162,7 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                     Data.isIdentified = true;
                 }
                 else if(Data.areadiff < -2500){
-                    if(mFaceId == Data.ids.get(0) || rootSquareDiff < 100){
+                    if(mFaceId == Data.ids.get(0) || rootSquareDiff < rootSquareDifThreshold){
                         name = Data.CHILD;
                         Data.updateNew(0,mFaceId,x,y,height,width);
                     }
@@ -183,7 +187,7 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                 double rootSquareDiff = Math.sqrt(difX*difX+difY*difY);
 
                 //Updating parent, child basic information and keep tracking.
-                if(mFaceId == Data.Parent.id || rootSquareDiff < 100 ){
+                if(mFaceId == Data.Parent.id || rootSquareDiff < rootSquareDifThreshold ){
                     name = Data.PARENT;
                     Data.updateNew(Data.ids.indexOf(Data.Parent.id), mFaceId,x,y,height,width);
                     Data.updateParent(mFaceId,x,y,height,width);
@@ -221,20 +225,12 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                     float globalTheta; // 0-360
 
                     //Drawing a looking direction line from the middle of the face. Using only rotation details
-                    //Looking from selfie camera. All the details according to the frame, not person
+                    //All the details according to the person, not the camera.
+                    if (eulerZ > 0) {isThetaPositive = false;}
+                    else {isThetaPositive = true;}
+                    if (eulerY > 0) {isLeft = false;}       // Left is person's left
+                    else {isLeft = true;}
 
-                    if(mIsFrontFacing) {
-                        if (eulerZ < 0) {isThetaPositive = false;}
-                        else {isThetaPositive = true;}
-                        if (eulerY < 0) {isLeft = false;}       // Left is preview frame's left
-                        else {isLeft = true;}
-                    }
-                    else{
-                        if (eulerZ > 0) {isThetaPositive = false;}
-                        else {isThetaPositive = true;}
-                        if (eulerY > 0) {isLeft = false;}       // Left is preview frame's left
-                        else {isLeft = true;}
-                    }
 
                     //Defining global theta(0-360) taking into consideration isThetaPositive and IsLeft
                     if(isThetaPositive && isLeft){ // Third Quadrant (180-270) range 180(0)-240(60)
@@ -250,9 +246,9 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                         globalTheta = 360 - theta;
                     }
 
-                    stopX = x+dirLineLength*Math.cos(Math.toRadians(globalTheta));
-                    stopY = y+dirLineLength*Math.sin(Math.toRadians(globalTheta));
-                    canvas.drawLine(x,y,(float)stopX,(float)stopY,mFacePositionPaint);
+                    stopX = x_canvas+dirLineLength*Math.cos(Math.toRadians(globalTheta));
+                    stopY = y_canvas+dirLineLength*Math.sin(Math.toRadians(globalTheta));
+                    canvas.drawLine(x_canvas,y_canvas,(float)stopX,(float)stopY,mFacePositionPaint);
 
                     //Detecting whether parent looking at child
                     if(name == Data.PARENT){
@@ -263,8 +259,8 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                         double thetaThresholdHigh;
                         double thetaThresholdLow;
 
-                        thetaThreshold1 = Math.atan2(Data.Child.y-translateY(Data.Child.faceHeight/3)-y, Data.Child.x-x);
-                        thetaThreshold2 = Math.atan2(Data.Child.y+translateY(Data.Child.faceHeight/3)-y, Data.Child.x-x);
+                        thetaThreshold1 = Math.atan2(Data.Child.y-Data.Child.faceHeight/4-y, Data.Child.x-x);
+                        thetaThreshold2 = Math.atan2(Data.Child.y+Data.Child.faceHeight/4-y, Data.Child.x-x);
                         thetaThreshold1 = Math.toDegrees(thetaThreshold1);
                         thetaThreshold2 = Math.toDegrees(thetaThreshold2);
 
@@ -303,8 +299,8 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                         double thetaThresholdHigh;
                         double thetaThresholdLow;
 
-                        thetaThreshold1 = Math.atan2(Data.Parent.y-translateY(Data.Parent.faceHeight/3)-y, Data.Parent.x-x);
-                        thetaThreshold2 = Math.atan2(Data.Parent.y+translateY(Data.Parent.faceHeight/3)-y, Data.Parent.x-x);
+                        thetaThreshold1 = Math.atan2(Data.Parent.y-Data.Parent.faceHeight/4-y, Data.Parent.x-x);
+                        thetaThreshold2 = Math.atan2(Data.Parent.y+Data.Parent.faceHeight/4-y, Data.Parent.x-x);
                         thetaThreshold1 = Math.toDegrees(thetaThreshold1);
                         thetaThreshold2 = Math.toDegrees(thetaThreshold2);
 
@@ -334,8 +330,13 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                             else{Data.isChildLookingAtParent=false;}
                         }
                     }
-                    if(Data.hasEyeContact){
+                    //Checking for eye contact
+                    if(Data.isChildLookingAtParent && Data.isParentLookingAtChild){
+                        Data.hasEyeContact=true;
                         Log.e("faceGraphic","Eye Contact");
+                    }
+                    else{
+                        Data.hasEyeContact=false;
                     }
 
                     //Checking for Joint attention on an object
@@ -346,6 +347,6 @@ class FaceGraphic extends GraphicOverlay.Graphic {
             }
         }
 
-        canvas.drawText(name, x + ID_X_OFFSET, y + ID_Y_OFFSET, mIdPaint);
+        canvas.drawText(name, x_canvas + ID_X_OFFSET, y_canvas + ID_Y_OFFSET, mIdPaint);
     }
 }

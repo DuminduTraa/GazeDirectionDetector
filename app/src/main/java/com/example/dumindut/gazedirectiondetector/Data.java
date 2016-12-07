@@ -66,6 +66,7 @@ public class Data {
         faceWidth.clear();
 
         faceCount = 0;
+        areadiff = 0;
         isIdentified = false;
     }
 
@@ -103,6 +104,8 @@ public class Data {
         public static float faceWidth;
         public static float faceHeight;
 
+        public static float globalTheta;
+
         public static long lastTime;
     }
 
@@ -113,6 +116,8 @@ public class Data {
         public static float y;
         public static float faceWidth;
         public static float faceHeight;
+
+        public static float globalTheta;
 
         public static long lastTime;
     }

@@ -256,6 +256,8 @@ class FaceGraphic extends GraphicOverlay.Graphic {
 
                     //Detecting whether parent looking at child
                     if(name == Data.PARENT){
+                        Data.Parent.globalTheta = globalTheta;
+
                         double thetaThreshold1;   //to y-faceheight/3
                         double thetaThreshold2;     //to y+faceheight/3
                         double thetaThresholdHigh;
@@ -294,6 +296,8 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                     }
                     //Detecting whether child looking at parent
                     else{
+                        Data.Child.globalTheta = globalTheta;
+
                         double thetaThreshold1;   //to y-faceheight/3
                         double thetaThreshold2;     //to y+faceheight/3
                         double thetaThresholdHigh;
@@ -332,6 +336,11 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                     }
                     if(Data.hasEyeContact){
                         Log.e("faceGraphic","Eye Contact");
+                    }
+
+                    //Checking for Joint attention on an object
+                    if(!Data.isParentLookingAtChild && !Data.isChildLookingAtParent){
+
                     }
                 }
             }

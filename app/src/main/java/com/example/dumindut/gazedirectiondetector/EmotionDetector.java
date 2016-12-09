@@ -34,12 +34,13 @@ public class EmotionDetector extends Detector<Face> {
     private EmotionServiceRestClient client;
     private Frame theFrame;
     private long lastTime;
+    private long lastTimeForJointAttention;
 
     EmotionDetector(Detector<Face> delegate, TextView textView, EmotionServiceRestClient client1) {
         mDelegate = delegate;
         emotionText = textView;
         client = client1;
-        lastTime = System.currentTimeMillis();
+        lastTime = lastTimeForJointAttention = System.currentTimeMillis();
     }
 
     @Override
@@ -48,8 +49,13 @@ public class EmotionDetector extends Detector<Face> {
         theFrame = frame;
 
         if(System.currentTimeMillis()-lastTime > 3000 && Data.isIdentified){
-           doRecognize();
+           doRecognizeEmotions();
            lastTime = System.currentTimeMillis();
+        }
+
+        if(System.currentTimeMillis()-lastTimeForJointAttention > 300 && Data.isIdentified){
+            doCheckForJointAttention();
+            lastTimeForJointAttention = System.currentTimeMillis();
         }
 
         return mDelegate.detect(frame);
@@ -64,8 +70,7 @@ public class EmotionDetector extends Detector<Face> {
     }
 
 
-    public void doRecognize() {
-
+    public void doRecognizeEmotions() {
         // Do emotion detection using auto-detected faces.
         try {
             new doRequest().execute();
@@ -207,5 +212,10 @@ public class EmotionDetector extends Detector<Face> {
         matrix.postRotate(270);
         return Bitmap.createBitmap(bitmapSrc, 0, 0,
                 bitmapSrc.getWidth(), bitmapSrc.getHeight(), matrix, true);
+    }
+
+    //Method to check for Joint attention
+    public void doCheckForJointAttention(){
+
     }
 }

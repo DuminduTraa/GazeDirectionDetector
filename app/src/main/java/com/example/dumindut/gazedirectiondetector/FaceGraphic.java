@@ -338,11 +338,6 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                     else{
                         Data.hasEyeContact=false;
                     }
-
-                    //Checking for Joint attention on an object
-                    if(!Data.isParentLookingAtChild && !Data.isChildLookingAtParent){
-
-                    }
                 }
             }
         }

@@ -54,7 +54,7 @@ public class EmotionDetector extends Detector<Face> {
         }
 
         if(System.currentTimeMillis()-lastTimeForJointAttention > 300 && Data.isIdentified){
-            doCheckForJointAttention();
+            recognizeFeatures();
             lastTimeForJointAttention = System.currentTimeMillis();
         }
 
@@ -215,7 +215,14 @@ public class EmotionDetector extends Detector<Face> {
     }
 
     //Method to check for Joint attention
-    public void doCheckForJointAttention(){
-
+    public void recognizeFeatures(){
+        //Checking for eye contact
+        if(Data.isChildLookingAtParent && Data.isParentLookingAtChild){
+            Data.hasEyeContact=true;
+            Log.e("faceGraphic","Eye Contact");
+        }
+        else{
+            Data.hasEyeContact=false;
+        }
     }
 }

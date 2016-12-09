@@ -259,8 +259,8 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                         double thetaThresholdHigh;
                         double thetaThresholdLow;
 
-                        thetaThreshold1 = Math.atan2(Data.Child.y-Data.Child.faceHeight/4-y, Data.Child.x-x);
-                        thetaThreshold2 = Math.atan2(Data.Child.y+Data.Child.faceHeight/4-y, Data.Child.x-x);
+                        thetaThreshold1 = Math.atan2(Data.Child.y-Data.Child.faceHeight/3.5-y, Data.Child.x-x);
+                        thetaThreshold2 = Math.atan2(Data.Child.y+Data.Child.faceHeight/3.5-y, Data.Child.x-x);
                         thetaThreshold1 = Math.toDegrees(thetaThreshold1);
                         thetaThreshold2 = Math.toDegrees(thetaThreshold2);
 
@@ -293,14 +293,14 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                     //Detecting whether child looking at parent
                     else{
                         Data.Child.globalTheta = globalTheta;
-
+ 
                         double thetaThreshold1;   //to y-faceheight/3
                         double thetaThreshold2;     //to y+faceheight/3
                         double thetaThresholdHigh;
                         double thetaThresholdLow;
 
-                        thetaThreshold1 = Math.atan2(Data.Parent.y-Data.Parent.faceHeight/4-y, Data.Parent.x-x);
-                        thetaThreshold2 = Math.atan2(Data.Parent.y+Data.Parent.faceHeight/4-y, Data.Parent.x-x);
+                        thetaThreshold1 = Math.atan2(Data.Parent.y-Data.Parent.faceHeight/3.5-y, Data.Parent.x-x);
+                        thetaThreshold2 = Math.atan2(Data.Parent.y+Data.Parent.faceHeight/3.5-y, Data.Parent.x-x);
                         thetaThreshold1 = Math.toDegrees(thetaThreshold1);
                         thetaThreshold2 = Math.toDegrees(thetaThreshold2);
 
@@ -329,14 +329,6 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                             }
                             else{Data.isChildLookingAtParent=false;}
                         }
-                    }
-                    //Checking for eye contact
-                    if(Data.isChildLookingAtParent && Data.isParentLookingAtChild){
-                        Data.hasEyeContact=true;
-                        Log.e("faceGraphic","Eye Contact");
-                    }
-                    else{
-                        Data.hasEyeContact=false;
                     }
                 }
             }

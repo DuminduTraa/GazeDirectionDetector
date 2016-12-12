@@ -336,6 +336,6 @@ class FaceGraphic extends GraphicOverlay.Graphic {
             }
         }
 
-        canvas.drawText(""+Data.meetX, x_canvas + ID_X_OFFSET, y_canvas + ID_Y_OFFSET, mIdPaint);
+        canvas.drawText(name, x_canvas + ID_X_OFFSET, y_canvas + ID_Y_OFFSET, mIdPaint);
     }
 }

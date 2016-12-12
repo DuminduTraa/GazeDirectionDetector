@@ -7,7 +7,6 @@ import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.graphics.YuvImage;
 import android.os.AsyncTask;
-import android.provider.ContactsContract;
 import android.util.Log;
 import android.util.SparseArray;
 import android.widget.TextView;
@@ -248,7 +247,8 @@ public class EmotionDetector extends Detector<Face> {
                 if(meetX < Data.previewWidth-Data.Parent.faceWidth/2 && meetX > Data.Parent.faceWidth/2){
                     if(meetY < Data.previewHeight-Data.Parent.faceHeight/2 && meetY > Data.Parent.faceHeight/2){
                         Data.hasJointAttention = true;      //Two rays meet within the camera preview.
-                         ;
+                        Data.meetX = (float)meetX;
+                        Data.meetY = (float)meetY;
                         Log.e("EmotionDetector","Joint Attention");
                     }
                 }

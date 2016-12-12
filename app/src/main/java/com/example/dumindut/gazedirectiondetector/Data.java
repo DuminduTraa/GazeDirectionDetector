@@ -11,6 +11,12 @@ public class Data {
     public static final String CHILD = "child";
     public static final String UNKNOWN = "unknown";
 
+    public static int previewWidth = 640;
+    public static int previewHeight = 480;
+
+    public static float meetX = 0;
+    public static float meetY = 0;
+
     public static int faceCount = 0;
     public static float areadiff = 0; //  0 - 1
 

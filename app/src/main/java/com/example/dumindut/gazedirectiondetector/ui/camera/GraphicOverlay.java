@@ -7,8 +7,10 @@ package com.example.dumindut.gazedirectiondetector.ui.camera;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.View;
 
+import com.example.dumindut.gazedirectiondetector.Data;
 import com.google.android.gms.vision.CameraSource;
 
 import java.util.HashSet;
@@ -17,9 +19,9 @@ import java.util.Set;
 
 public class GraphicOverlay extends View {
     private final Object mLock = new Object();
-    private int mPreviewWidth;
+    public int mPreviewWidth;
     private float mWidthScaleFactor = 1.0f;
-    private int mPreviewHeight;
+    public int mPreviewHeight;
     private float mHeightScaleFactor = 1.0f;
     private int mFacing = CameraSource.CAMERA_FACING_FRONT;
     private Set<Graphic> mGraphics = new HashSet<>();
@@ -47,9 +49,6 @@ public class GraphicOverlay extends View {
             } else {
                 return scaleX(x);
             }
-        }
-        public float translateY(float y) {
-            return scaleY(y);
         }
 
         public void postInvalidate() {
@@ -87,6 +86,8 @@ public class GraphicOverlay extends View {
             mPreviewWidth = previewWidth;
             mPreviewHeight = previewHeight;
             mFacing = facing;
+            Data.previewWidth = mPreviewWidth;
+            Data.previewHeight = mPreviewHeight;
         }
         postInvalidate();
     }

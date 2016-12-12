@@ -7,6 +7,7 @@ import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.graphics.YuvImage;
 import android.os.AsyncTask;
+import android.provider.ContactsContract;
 import android.util.Log;
 import android.util.SparseArray;
 import android.widget.TextView;
@@ -186,7 +187,7 @@ public class EmotionDetector extends Detector<Face> {
 
         byte[] outputArray = output.toByteArray();
 
-        //If portraid, changing the outputArray
+        //If portrait, changing the outputArray
         if (theFrame.getMetadata().getRotation() ==3){
             Bitmap bmp = BitmapFactory.decodeByteArray(outputArray, 0, outputArray.length);
             Bitmap rotatedBmp = rotateImage(bmp);
@@ -207,7 +208,7 @@ public class EmotionDetector extends Detector<Face> {
     }
 
     //Method to rotate bitmap by 90degrees clockwise
-    public Bitmap rotateImage(Bitmap bitmapSrc) {
+    private Bitmap rotateImage(Bitmap bitmapSrc) {
         Matrix matrix = new Matrix();
         matrix.postRotate(270);
         return Bitmap.createBitmap(bitmapSrc, 0, 0,
@@ -215,7 +216,7 @@ public class EmotionDetector extends Detector<Face> {
     }
 
     //Method to check for Joint attention
-    public void recognizeFeatures(){
+    private void recognizeFeatures(){
         //Checking for eye contact
         if(Data.isChildLookingAtParent && Data.isParentLookingAtChild){
             Data.hasEyeContact=true;
@@ -223,6 +224,35 @@ public class EmotionDetector extends Detector<Face> {
         }
         else{
             Data.hasEyeContact=false;
+        }
+
+        //Checking for joint attention
+        if(!Data.isChildLookingAtParent && !Data.isParentLookingAtChild){
+            Data.hasJointAttention = false;
+            Data.meetX = 0;
+            Data.meetY = 0;
+            float x1 = Data.Parent.x;
+            float y1 = Data.Parent.y;
+            float x2 = Data.Child.x;
+            float y2 = Data.Child.y;
+            float theta1 = Data.Parent.globalTheta;
+            float theta2 = Data.Child.globalTheta;
+
+            double u = (y2 + (x1-x2)*Math.tan(theta2) - y1)/(Math.sin(theta1)-Math.cos(theta1)*Math.tan(theta2));
+            double v = (x1 + u*Math.cos(theta1) - x2)/Math.cos(theta2);
+
+            if(u>0 && v>0){//two rays meet
+                double meetX = x1 + u*Math.cos(theta1);
+                double meetY = y1 + u*Math.sin(theta1);
+
+                if(meetX < Data.previewWidth-Data.Parent.faceWidth/2 && meetX > Data.Parent.faceWidth/2){
+                    if(meetY < Data.previewHeight-Data.Parent.faceHeight/2 && meetY > Data.Parent.faceHeight/2){
+                        Data.hasJointAttention = true;      //Two rays meet within the camera preview.
+                         ;
+                        Log.e("EmotionDetector","Joint Attention");
+                    }
+                }
+            }
         }
     }
 }

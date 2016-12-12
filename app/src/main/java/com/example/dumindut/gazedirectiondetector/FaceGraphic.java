@@ -94,6 +94,8 @@ class FaceGraphic extends GraphicOverlay.Graphic {
 
         canvas.drawCircle(x_canvas, y_canvas, FACE_POSITION_RADIUS+5.0f, mFacePositionPaint);
 
+        canvas.drawCircle(translateX(Data.meetX), scaleY(Data.meetY), FACE_POSITION_RADIUS+5.0f, mFacePositionPaint);
+
         // Draws a bounding box around the face.
         float xOffset = scaleX(face.getWidth() / 2.0f);
         float yOffset = scaleY(face.getHeight() / 2.0f);
@@ -259,8 +261,8 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                         double thetaThresholdHigh;
                         double thetaThresholdLow;
 
-                        thetaThreshold1 = Math.atan2(Data.Child.y-Data.Child.faceHeight/3.5-y, Data.Child.x-x);
-                        thetaThreshold2 = Math.atan2(Data.Child.y+Data.Child.faceHeight/3.5-y, Data.Child.x-x);
+                        thetaThreshold1 = Math.atan2(Data.Child.y-Data.Child.faceHeight/4-y, Data.Child.x-x);
+                        thetaThreshold2 = Math.atan2(Data.Child.y+Data.Child.faceHeight/4-y, Data.Child.x-x);
                         thetaThreshold1 = Math.toDegrees(thetaThreshold1);
                         thetaThreshold2 = Math.toDegrees(thetaThreshold2);
 
@@ -299,8 +301,8 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                         double thetaThresholdHigh;
                         double thetaThresholdLow;
 
-                        thetaThreshold1 = Math.atan2(Data.Parent.y-Data.Parent.faceHeight/3.5-y, Data.Parent.x-x);
-                        thetaThreshold2 = Math.atan2(Data.Parent.y+Data.Parent.faceHeight/3.5-y, Data.Parent.x-x);
+                        thetaThreshold1 = Math.atan2(Data.Parent.y-Data.Parent.faceHeight/4-y, Data.Parent.x-x);
+                        thetaThreshold2 = Math.atan2(Data.Parent.y+Data.Parent.faceHeight/4-y, Data.Parent.x-x);
                         thetaThreshold1 = Math.toDegrees(thetaThreshold1);
                         thetaThreshold2 = Math.toDegrees(thetaThreshold2);
 
@@ -334,6 +336,6 @@ class FaceGraphic extends GraphicOverlay.Graphic {
             }
         }
 
-        canvas.drawText(name, x_canvas + ID_X_OFFSET, y_canvas + ID_Y_OFFSET, mIdPaint);
+        canvas.drawText(""+Data.meetX, x_canvas + ID_X_OFFSET, y_canvas + ID_Y_OFFSET, mIdPaint);
     }
 }

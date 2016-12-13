@@ -35,6 +35,8 @@ public class EmotionDetector extends Detector<Face> {
     private Frame theFrame;
     private long lastTime;
     private long lastTimeForJointAttention;
+    private static final float X_DIF_THRESHOLD = 10.0f;
+    private static final float Y_DIF_THRESHOLD = 40.0f;
 
     EmotionDetector(Detector<Face> delegate, TextView textView, EmotionServiceRestClient client1) {
         mDelegate = delegate;
@@ -101,23 +103,29 @@ public class EmotionDetector extends Detector<Face> {
         protected void onPostExecute(List<RecognizeResult> result) {
             super.onPostExecute(result);
             // Display based on error existence
-
             if (e != null) {
                 emotionText.setText("Error: " + e.getMessage());
                 //Log.e("error", e.getMessage());
                 this.e = null;
             } else {
-                if (result.size() == 0) {
-                    emotionText.setText("No emotion detected :(");
+                if (result.size() != 2) {
+                    emotionText.setText("Could not find two faces :(");
                     //Log.e("error", "No emotion detected :(");
-                } else {
-                    Integer count = 0;
+                }
+                else {
                     String resultText = "";
+                    String name;
 
                     for (RecognizeResult r : result) {
-                        resultText += (String.format("\nFace #%1$d \n", count));
+                        float x = r.faceRectangle.left + r.faceRectangle.width/2;
+                        float y = r.faceRectangle.top + r.faceRectangle.height/2;
 
-                        Double[] valueList = new Double[8];
+                        String most = "";
+                        String secondMost = "";
+                        double mostValue = 0.;
+                        double secondMostValue = 0.;
+
+                        double[] valueList = new double[8];
                         valueList[0] = r.scores.anger;
                         valueList[1] = r.scores.contempt;
                         valueList[2] = r.scores.disgust;
@@ -126,7 +134,6 @@ public class EmotionDetector extends Detector<Face> {
                         valueList[5] = r.scores.neutral;
                         valueList[6] = r.scores.sadness;
                         valueList[7] = r.scores.surprise;
-
 
                         String[] emotions = new String[8];
                         emotions[0] = "Anger";
@@ -137,11 +144,6 @@ public class EmotionDetector extends Detector<Face> {
                         emotions[5] = "Neutral";
                         emotions[6] = "Sadness";
                         emotions[7] = "Surprise";
-
-                        String most = "";
-                        String secondMost = "";
-                        Double mostValue = 0.;
-                        Double secondMostValue = 0.;
 
                         for (int i=0;i<8;i++){
                             if(valueList[i] > mostValue){
@@ -156,13 +158,27 @@ public class EmotionDetector extends Detector<Face> {
                             }
                         }
 
+                        if(Math.abs(x-Data.Parent.x)<X_DIF_THRESHOLD && Math.abs(y-Data.Parent.y)<Y_DIF_THRESHOLD){
+                            name = Data.PARENT;
+                            Data.parentEmotion1 = most;
+                            Data.parentEmotion1Value = (float)mostValue;
+                            Data.parentEmotion2 = secondMost;
+                            Data.parentEmotion2Value = (float)secondMostValue;
+                        }
+                        else if(Math.abs(x-Data.Child.x)<X_DIF_THRESHOLD && Math.abs(y-Data.Child.y)<Y_DIF_THRESHOLD){
+                            name = Data.CHILD;
+                            Data.childEmotion1 = most;
+                            Data.childEmotion1Value = (float)mostValue;
+                            Data.childEmotion2 = secondMost;
+                            Data.getChildEmotion2Value = (float)secondMostValue;
+                        }
+                        else{name = Data.UNKNOWN;}
+
+                        resultText += "\n"+name + "\n";
                         resultText += most + " : " + (int)(double)(mostValue*100) + "%\n";
                         resultText += secondMost + " : " + (int)(double)(secondMostValue*100) + "%\n";
-                        resultText += (String.format("face rectangle: %d, %d, %d, %d", r.faceRectangle.left, r.faceRectangle.top, r.faceRectangle.width, r.faceRectangle.height));
-                        count++;
                     }
                     emotionText.setText(resultText);
-                    //Log.e("result", resultText);
                 }
             }
         }
@@ -178,11 +194,11 @@ public class EmotionDetector extends Detector<Face> {
 
         ByteBuffer byteBuffer = theFrame.getGrayscaleImageData();
         int width = theFrame.getMetadata().getWidth();
-        int heigth = theFrame.getMetadata().getHeight();
-        YuvImage yuvimage = new YuvImage(byteBuffer.array(), ImageFormat.NV21, width, heigth, null);
+        int height = theFrame.getMetadata().getHeight();
+        YuvImage yuvimage = new YuvImage(byteBuffer.array(), ImageFormat.NV21, width, height, null);
 
         ByteArrayOutputStream output = new ByteArrayOutputStream();
-        yuvimage.compressToJpeg(new Rect(0, 0, width, heigth), 100, output);
+        yuvimage.compressToJpeg(new Rect(0, 0, width, height), 100, output);
 
         byte[] outputArray = output.toByteArray();
 

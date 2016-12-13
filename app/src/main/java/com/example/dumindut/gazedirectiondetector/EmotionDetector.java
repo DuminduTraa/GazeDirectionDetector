@@ -234,8 +234,8 @@ public class EmotionDetector extends Detector<Face> {
             float y1 = Data.Parent.y;
             float x2 = Data.Child.x;
             float y2 = Data.Child.y;
-            float theta1 = Data.Parent.globalTheta;
-            float theta2 = Data.Child.globalTheta;
+            double theta1 = Math.toRadians(Data.Parent.globalTheta);
+            double theta2 = Math.toRadians(Data.Child.globalTheta);
 
             double u = (y2 + (x1-x2)*Math.tan(theta2) - y1)/(Math.sin(theta1)-Math.cos(theta1)*Math.tan(theta2));
             double v = (x1 + u*Math.cos(theta1) - x2)/Math.cos(theta2);

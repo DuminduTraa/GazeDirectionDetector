@@ -11,8 +11,16 @@ public class Data {
     public static final String CHILD = "child";
     public static final String UNKNOWN = "unknown";
 
+    public static int previewWidth = 640;
+    public static int previewHeight = 480;
+
+    public static float meetX = 0;
+    public static float meetY = 0;
+
     public static int faceCount = 0;
     public static float areadiff = 0; //  0 - 1
+
+    public static boolean isIdentified = false;
 
 
     public static ArrayList<Integer> ids = new ArrayList<Integer>();
@@ -21,6 +29,19 @@ public class Data {
     public static ArrayList<Float> faceHeight = new ArrayList<Float>();
     public static ArrayList<Float> faceWidth = new ArrayList<Float>();
 
+    //Variables for the features
+    public static boolean isParentLookingAtChild = false;
+    public static boolean isChildLookingAtParent = false;
+    public static boolean hasEyeContact = false;
+    public static boolean hasJointAttention = false;
+    public static String  parentEmotion1;
+    public static String parentEmotion2;
+    public static float parentEmotion1Value;
+    public static float parentEmotion2Value;
+    public static String childEmotion1;
+    public static String childEmotion2;
+    public static float childEmotion1Value;
+    public static float getChildEmotion2Value;
 
     static void addNew(int id, float x, float y, float height, float width){
         ids.add(id);
@@ -51,6 +72,8 @@ public class Data {
         faceWidth.clear();
 
         faceCount = 0;
+        areadiff = 0;
+        isIdentified = false;
     }
 
 
@@ -86,6 +109,10 @@ public class Data {
         public static float y;
         public static float faceWidth;
         public static float faceHeight;
+
+        public static float globalTheta;
+
+        public static long lastTime;
     }
 
 
@@ -95,5 +122,9 @@ public class Data {
         public static float y;
         public static float faceWidth;
         public static float faceHeight;
+
+        public static float globalTheta;
+
+        public static long lastTime;
     }
 }

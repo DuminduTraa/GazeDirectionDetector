@@ -33,12 +33,16 @@ public class EmotionDetector extends Detector<Face> {
     private TextView emotionText;
     private EmotionServiceRestClient client;
     private Frame theFrame;
-    private long lastTime = System.currentTimeMillis();
+    private long lastTime;
+    private long lastTimeForJointAttention;
+    private static final float X_DIF_THRESHOLD = 10.0f;
+    private static final float Y_DIF_THRESHOLD = 40.0f;
 
     EmotionDetector(Detector<Face> delegate, TextView textView, EmotionServiceRestClient client1) {
         mDelegate = delegate;
         emotionText = textView;
         client = client1;
+        lastTime = lastTimeForJointAttention = System.currentTimeMillis();
     }
 
     @Override
@@ -46,9 +50,14 @@ public class EmotionDetector extends Detector<Face> {
         // *** Custom frame processing code
         theFrame = frame;
 
-        if(System.currentTimeMillis()-lastTime > 3000){
-           doRecognize();
+        if(System.currentTimeMillis()-lastTime > 3000 && Data.isIdentified){
+           doRecognizeEmotions();
            lastTime = System.currentTimeMillis();
+        }
+
+        if(System.currentTimeMillis()-lastTimeForJointAttention > 300 && Data.isIdentified){
+            recognizeFeatures();
+            lastTimeForJointAttention = System.currentTimeMillis();
         }
 
         return mDelegate.detect(frame);
@@ -63,8 +72,7 @@ public class EmotionDetector extends Detector<Face> {
     }
 
 
-    public void doRecognize() {
-
+    public void doRecognizeEmotions() {
         // Do emotion detection using auto-detected faces.
         try {
             new doRequest().execute();
@@ -95,23 +103,29 @@ public class EmotionDetector extends Detector<Face> {
         protected void onPostExecute(List<RecognizeResult> result) {
             super.onPostExecute(result);
             // Display based on error existence
-
             if (e != null) {
                 emotionText.setText("Error: " + e.getMessage());
                 //Log.e("error", e.getMessage());
                 this.e = null;
             } else {
-                if (result.size() == 0) {
-                    emotionText.setText("No emotion detected :(");
+                if (result.size() != 2) {
+                    emotionText.setText("Could not find two faces :(");
                     //Log.e("error", "No emotion detected :(");
-                } else {
-                    Integer count = 0;
+                }
+                else {
                     String resultText = "";
+                    String name;
 
                     for (RecognizeResult r : result) {
-                        resultText += (String.format("\nFace #%1$d \n", count));
+                        float x = r.faceRectangle.left + r.faceRectangle.width/2;
+                        float y = r.faceRectangle.top + r.faceRectangle.height/2;
 
-                        Double[] valueList = new Double[8];
+                        String most = "";
+                        String secondMost = "";
+                        double mostValue = 0.;
+                        double secondMostValue = 0.;
+
+                        double[] valueList = new double[8];
                         valueList[0] = r.scores.anger;
                         valueList[1] = r.scores.contempt;
                         valueList[2] = r.scores.disgust;
@@ -120,7 +134,6 @@ public class EmotionDetector extends Detector<Face> {
                         valueList[5] = r.scores.neutral;
                         valueList[6] = r.scores.sadness;
                         valueList[7] = r.scores.surprise;
-
 
                         String[] emotions = new String[8];
                         emotions[0] = "Anger";
@@ -131,11 +144,6 @@ public class EmotionDetector extends Detector<Face> {
                         emotions[5] = "Neutral";
                         emotions[6] = "Sadness";
                         emotions[7] = "Surprise";
-
-                        String most = "";
-                        String secondMost = "";
-                        Double mostValue = 0.;
-                        Double secondMostValue = 0.;
 
                         for (int i=0;i<8;i++){
                             if(valueList[i] > mostValue){
@@ -150,13 +158,27 @@ public class EmotionDetector extends Detector<Face> {
                             }
                         }
 
+                        if(Math.abs(x-Data.Parent.x)<X_DIF_THRESHOLD && Math.abs(y-Data.Parent.y)<Y_DIF_THRESHOLD){
+                            name = Data.PARENT;
+                            Data.parentEmotion1 = most;
+                            Data.parentEmotion1Value = (float)mostValue;
+                            Data.parentEmotion2 = secondMost;
+                            Data.parentEmotion2Value = (float)secondMostValue;
+                        }
+                        else if(Math.abs(x-Data.Child.x)<X_DIF_THRESHOLD && Math.abs(y-Data.Child.y)<Y_DIF_THRESHOLD){
+                            name = Data.CHILD;
+                            Data.childEmotion1 = most;
+                            Data.childEmotion1Value = (float)mostValue;
+                            Data.childEmotion2 = secondMost;
+                            Data.getChildEmotion2Value = (float)secondMostValue;
+                        }
+                        else{name = Data.UNKNOWN;}
+
+                        resultText += "\n"+name + "\n";
                         resultText += most + " : " + (int)(double)(mostValue*100) + "%\n";
                         resultText += secondMost + " : " + (int)(double)(secondMostValue*100) + "%\n";
-                        resultText += (String.format("face rectangle: %d, %d, %d, %d", r.faceRectangle.left, r.faceRectangle.top, r.faceRectangle.width, r.faceRectangle.height));
-                        count++;
                     }
                     emotionText.setText(resultText);
-                    //Log.e("result", resultText);
                 }
             }
         }
@@ -172,15 +194,15 @@ public class EmotionDetector extends Detector<Face> {
 
         ByteBuffer byteBuffer = theFrame.getGrayscaleImageData();
         int width = theFrame.getMetadata().getWidth();
-        int heigth = theFrame.getMetadata().getHeight();
-        YuvImage yuvimage = new YuvImage(byteBuffer.array(), ImageFormat.NV21, width, heigth, null);
+        int height = theFrame.getMetadata().getHeight();
+        YuvImage yuvimage = new YuvImage(byteBuffer.array(), ImageFormat.NV21, width, height, null);
 
         ByteArrayOutputStream output = new ByteArrayOutputStream();
-        yuvimage.compressToJpeg(new Rect(0, 0, width, heigth), 100, output);
+        yuvimage.compressToJpeg(new Rect(0, 0, width, height), 100, output);
 
         byte[] outputArray = output.toByteArray();
 
-        //If portraid, changing the outputArray
+        //If portrait, changing the outputArray
         if (theFrame.getMetadata().getRotation() ==3){
             Bitmap bmp = BitmapFactory.decodeByteArray(outputArray, 0, outputArray.length);
             Bitmap rotatedBmp = rotateImage(bmp);
@@ -201,10 +223,52 @@ public class EmotionDetector extends Detector<Face> {
     }
 
     //Method to rotate bitmap by 90degrees clockwise
-    public Bitmap rotateImage(Bitmap bitmapSrc) {
+    private Bitmap rotateImage(Bitmap bitmapSrc) {
         Matrix matrix = new Matrix();
         matrix.postRotate(270);
         return Bitmap.createBitmap(bitmapSrc, 0, 0,
                 bitmapSrc.getWidth(), bitmapSrc.getHeight(), matrix, true);
+    }
+
+    //Method to check for Joint attention
+    private void recognizeFeatures(){
+        //Checking for eye contact
+        if(Data.isChildLookingAtParent && Data.isParentLookingAtChild){
+            Data.hasEyeContact=true;
+            Log.e("faceGraphic","Eye Contact");
+        }
+        else{
+            Data.hasEyeContact=false;
+        }
+
+        //Checking for joint attention
+        if(!Data.isChildLookingAtParent && !Data.isParentLookingAtChild){
+            Data.hasJointAttention = false;
+            Data.meetX = 0;
+            Data.meetY = 0;
+            float x1 = Data.Parent.x;
+            float y1 = Data.Parent.y;
+            float x2 = Data.Child.x;
+            float y2 = Data.Child.y;
+            double theta1 = Math.toRadians(Data.Parent.globalTheta);
+            double theta2 = Math.toRadians(Data.Child.globalTheta);
+
+            double u = (y2 + (x1-x2)*Math.tan(theta2) - y1)/(Math.sin(theta1)-Math.cos(theta1)*Math.tan(theta2));
+            double v = (x1 + u*Math.cos(theta1) - x2)/Math.cos(theta2);
+
+            if(u>0 && v>0){//two rays meet
+                double meetX = x1 + u*Math.cos(theta1);
+                double meetY = y1 + u*Math.sin(theta1);
+
+                if(meetX < Data.previewWidth-Data.Parent.faceWidth/2 && meetX > Data.Parent.faceWidth/2){
+                    if(meetY < Data.previewHeight-Data.Parent.faceHeight/2 && meetY > Data.Parent.faceHeight/2){
+                        Data.hasJointAttention = true;      //Two rays meet within the camera preview.
+                        Data.meetX = (float)meetX;
+                        Data.meetY = (float)meetY;
+                        Log.e("EmotionDetector","Joint Attention");
+                    }
+                }
+            }
+        }
     }
 }

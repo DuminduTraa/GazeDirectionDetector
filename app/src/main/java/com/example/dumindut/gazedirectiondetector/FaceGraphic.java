@@ -7,10 +7,10 @@ package com.example.dumindut.gazedirectiondetector;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.util.Log;
 
 import com.example.dumindut.gazedirectiondetector.ui.camera.GraphicOverlay;
 import com.google.android.gms.vision.face.Face;
-import com.google.android.gms.vision.face.Landmark;
 
 /*Graphic instance for rendering face position, orientation, and landmarks within an associated graphic overlay view.*/
 class FaceGraphic extends GraphicOverlay.Graphic {
@@ -59,6 +59,7 @@ class FaceGraphic extends GraphicOverlay.Graphic {
         mBoxPaint.setStrokeWidth(BOX_STROKE_WIDTH);
 
         mIsFrontFacing = facing;
+
     }
 
     void setId(int id) {
@@ -81,193 +82,34 @@ class FaceGraphic extends GraphicOverlay.Graphic {
         float height = face.getHeight();
         float faceArea = width*height;
 
-        float x = translateX(face.getPosition().x + width / 2);
-        float y = translateY(face.getPosition().y + height / 2);
+        float x = face.getPosition().x + width / 2;
+        float y = face.getPosition().y + height / 2;
+        float x_canvas = translateX(x);
+        float y_canvas = scaleY(y);
 
-
-        float left_eye_x = -1;
-        float left_eye_y = -1;
-        float right_eye_x = -1;
-        float right_eye_y = -1;
-        float mouth_x = -1;
-        float mouth_y = -1;
-        float left_mouth_x = -1;
-        float left_mouth_y = -1;
-        float right_mouth_x = -1;
-        float right_mouth_y = -1;
-        float left_cheek_x = -1;
-        float left_cheek_y = -1;
-        float right_cheek_x = -1;
-        float right_cheek_y = -1;
-        float nose_x = -1;
-        float nose_y = -1;
-
-        float eulerY = face.getEulerY();
-        float eulerZ = face.getEulerZ();
-
-        float theta = Math.abs(eulerZ);
-        float dirLineLength = Math.abs(eulerY)/60*1000;
-        boolean isThetaPositive;
-        boolean isYLeft;
-        double stopX;
-        double stopY;
+        double rootSquareDifThreshold = Math.sqrt((width/2)*(width/2)+(height/2)*(height/2));
 
         String name;
+        long currentTime = System.currentTimeMillis();
 
-        //canvas.drawText("id: " + mFaceId, x + ID_X_OFFSET, y + ID_Y_OFFSET, mIdPaint);
+        canvas.drawCircle(x_canvas, y_canvas, FACE_POSITION_RADIUS+5.0f, mFacePositionPaint);
 
-        canvas.drawCircle(x, y, FACE_POSITION_RADIUS+5.0f, mFacePositionPaint);
-
-        canvas.drawText("rotationY: " + String.format("%.2f", eulerY), x-100,y-150, mIdPaint);
-        canvas.drawText("rotationZ: " + String.format("%.2f", eulerZ), x-100,y-100, mIdPaint);
-
-        /*for (Landmark landmark : face.getLandmarks()){
-            float cx = translateX(landmark.getPosition().x);
-            float cy = translateY(landmark.getPosition().y);
-            canvas.drawCircle(cx, cy, FACE_POSITION_RADIUS, mFacePositionPaint);
-        }*/
-
-        for (Landmark landmark : face.getLandmarks()) {
-            if (landmark.getType() == Landmark.RIGHT_EYE) {
-                right_eye_x = translateX(landmark.getPosition().x);
-                right_eye_y = translateY(landmark.getPosition().y);
-                canvas.drawCircle(right_eye_x, right_eye_y, FACE_POSITION_RADIUS, mFacePositionPaint);
-            }
-            else if (landmark.getType() == Landmark.LEFT_EYE) {
-                left_eye_x = translateX(landmark.getPosition().x);
-                left_eye_y = translateY(landmark.getPosition().y);
-                canvas.drawCircle(left_eye_x, left_eye_y, FACE_POSITION_RADIUS, mFacePositionPaint);
-            }
-            else if (landmark.getType() == Landmark.LEFT_CHEEK) {
-                left_cheek_x = translateX(landmark.getPosition().x);
-                left_cheek_y = translateY(landmark.getPosition().y);
-                canvas.drawCircle(left_cheek_x, left_cheek_y, FACE_POSITION_RADIUS, mFacePositionPaint);
-            }
-            else if (landmark.getType() == Landmark.RIGHT_CHEEK) {
-                right_cheek_x = translateX(landmark.getPosition().x);
-                right_cheek_y = translateY(landmark.getPosition().y);
-                canvas.drawCircle(right_cheek_x, right_cheek_y, FACE_POSITION_RADIUS, mFacePositionPaint);
-            }
-            else if (landmark.getType() == Landmark.NOSE_BASE) {
-                nose_x = translateX(landmark.getPosition().x);
-                nose_y = translateY(landmark.getPosition().y);
-                canvas.drawCircle(nose_x, nose_y, FACE_POSITION_RADIUS, mFacePositionPaint);
-            }
-            else if (landmark.getType() == Landmark.LEFT_MOUTH) {
-                left_mouth_x = translateX(landmark.getPosition().x);
-                left_mouth_y = translateY(landmark.getPosition().y);
-                canvas.drawCircle(left_mouth_x, left_mouth_y, FACE_POSITION_RADIUS, mFacePositionPaint);
-            }
-            else if (landmark.getType() == Landmark.RIGHT_MOUTH) {
-                right_mouth_x = translateX(landmark.getPosition().x);
-                right_mouth_y = translateY(landmark.getPosition().y);
-                canvas.drawCircle(right_mouth_x, right_mouth_y, FACE_POSITION_RADIUS, mFacePositionPaint);
-            }
-            else if (landmark.getType() == Landmark.BOTTOM_MOUTH) {
-                mouth_x = translateX(landmark.getPosition().x);
-                mouth_y = translateY(landmark.getPosition().y);
-                canvas.drawCircle( mouth_x, mouth_y, FACE_POSITION_RADIUS, mFacePositionPaint);
-            }
-            /*else if (landmark.getType() == Landmark.LEFT_EAR) {
-                float cx = translateX(landmark.getPosition().x);
-                float cy = translateY(landmark.getPosition().y);
-                canvas.drawCircle(cx, cy, FACE_POSITION_RADIUS, mFacePositionPaint);
-            }
-            else if (landmark.getType() == Landmark.LEFT_EAR_TIP) {
-                float cx = translateX(landmark.getPosition().x);
-                float cy = translateY(landmark.getPosition().y);
-                canvas.drawCircle(cx, cy, FACE_POSITION_RADIUS, mFacePositionPaint);
-            }
-            else if (landmark.getType() == Landmark.RIGHT_EAR) {
-                float cx = translateX(landmark.getPosition().x);
-                float cy = translateY(landmark.getPosition().y);
-                canvas.drawCircle(cx, cy, FACE_POSITION_RADIUS, mFacePositionPaint);
-            }
-            else if (landmark.getType() == Landmark.RIGHT_EAR_TIP) {
-                float cx = translateX(landmark.getPosition().x);
-                float cy = translateY(landmark.getPosition().y);
-                canvas.drawCircle(cx, cy, FACE_POSITION_RADIUS, mFacePositionPaint);
-            }*/
-        }
-
-        //Draw the T shape connecting eyes and mouth
-
-/*        if (left_eye_x != -1 && left_eye_y != -1 && right_eye_x != -1 &&right_eye_y != -1 && mouth_x!=-1 && mouth_y!=-1){
-            canvas.drawLine(left_eye_x, left_eye_y, right_eye_x, right_eye_y, mFacePositionPaint);
-            canvas.drawLine((left_eye_x+right_eye_x)/2, (left_eye_y+right_eye_y)/2, mouth_x, mouth_y, mFacePositionPaint);
-        }
-        else if(){
-
-        }*/
-
-        //Drawing a looking direction line from the middle of the face. Using only rotation details
-        //Looking from selfie camera. All the details according to the frame, not person
-
-
-
-       if(mIsFrontFacing) {
-            if (eulerZ < 0) {
-                isThetaPositive = false;
-            } else {
-                isThetaPositive = true;
-            }
-            if (eulerY < 0) {
-                isYLeft = false;
-            }       // Left is preview frame's left
-            else {
-                isYLeft = true;
-            }
-        }
-
-        else{
-            if (eulerZ > 0) {
-                isThetaPositive = false;
-            } else {
-                isThetaPositive = true;
-            }
-            if (eulerY > 0) {
-                isYLeft = false;
-            }       // Left is preview frame's left
-            else {
-                isYLeft = true;
-            }
-        }
-
-        if(isThetaPositive && isYLeft){
-            stopX = x-dirLineLength*Math.cos(Math.toRadians(theta));
-            stopY = y-dirLineLength*Math.sin(Math.toRadians(theta));
-            canvas.drawLine(x,y,(float)stopX,(float)stopY,mFacePositionPaint);
-        }
-        else if(isThetaPositive && !isYLeft){
-            stopX = x+dirLineLength*Math.cos(Math.toRadians(theta));
-            stopY = y+dirLineLength*Math.sin(Math.toRadians(theta));
-            canvas.drawLine(x,y,(float)stopX,(float)stopY,mFacePositionPaint);
-        }
-        else if(!isThetaPositive && isYLeft){
-            stopX = x-dirLineLength*Math.cos(Math.toRadians(theta));
-            stopY = y+dirLineLength*Math.sin(Math.toRadians(theta));
-            canvas.drawLine(x,y,(float)stopX,(float)stopY,mFacePositionPaint);
-        }
-        else{
-            stopX = x+dirLineLength*Math.cos(Math.toRadians(theta));
-            stopY = y-dirLineLength*Math.sin(Math.toRadians(theta));
-            canvas.drawLine(x,y,(float)stopX,(float)stopY,mFacePositionPaint);
-        }
-
+        canvas.drawCircle(translateX(Data.meetX), scaleY(Data.meetY), FACE_POSITION_RADIUS+5.0f, mFacePositionPaint);
 
         // Draws a bounding box around the face.
         float xOffset = scaleX(face.getWidth() / 2.0f);
         float yOffset = scaleY(face.getHeight() / 2.0f);
-        float left = x - xOffset;
-        float top = y - yOffset;
-        float right = x + xOffset;
-        float bottom = y + yOffset;
+        float left = x_canvas - xOffset;
+        float top = y_canvas - yOffset;
+        float right = x_canvas + xOffset;
+        float bottom = y_canvas + yOffset;
         canvas.drawRect(left, top, right, bottom, mBoxPaint);
 
         ///////////////////////////////////////////////////////////////////////////////////////////////
         ///////////////////////////////////////////////////////////////////////////////////////////////
         ///////////////////////////////////////////////////////////////////////////////////////////////
-        //All the Decision Making with reference to Data classes and updating Data classes
+        //All the regular decision Making with reference to Data classes and updating parent
+        // and child data in Data class.
 
         if(Data.ids.size() == 0){
             Data.addNew(mFaceId, x, y, height, width );
@@ -277,7 +119,7 @@ class FaceGraphic extends GraphicOverlay.Graphic {
             float difX = Math.abs(x-Data.positionX.get(0));
             float difY = Math.abs(y-Data.positionY.get(0));
             double rootSquareDiff = Math.sqrt(difX*difX+difY*difY);
-            if(mFaceId != Data.ids.get(0) && rootSquareDiff > 250) {
+            if(mFaceId != Data.ids.get(0) && rootSquareDiff > rootSquareDifThreshold) {
                 Data.addNew(mFaceId, x, y, height, width);
                 name = Data.UNKNOWN;
             }
@@ -291,7 +133,7 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                 float difX = Math.abs(x-Data.positionX.get(0));
                 float difY = Math.abs(y-Data.positionY.get(0));
                 double rootSquareDiff = Math.sqrt(difX*difX+difY*difY);
-                if(mFaceId == Data.ids.get(0) || rootSquareDiff < 250){
+                if(mFaceId == Data.ids.get(0) || rootSquareDiff < rootSquareDifThreshold){
                     Data.areadiff += faceArea - Data.faceHeight.get(1)*Data.faceHeight.get(1);
                     Data.updateNew(0,mFaceId,x,y,height,width);
                 }
@@ -303,11 +145,12 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                 Data.faceCount++;
             }
             else if(Data.faceCount == 100){
+                Data.faceCount++;
                 float difX = Math.abs(x-Data.positionX.get(0));
                 float difY = Math.abs(y-Data.positionY.get(0));
                 double rootSquareDiff = Math.sqrt(difX*difX+difY*difY);
                 if(Data.areadiff > 2500){
-                    if(mFaceId == Data.ids.get(0) || rootSquareDiff < 250){
+                    if(mFaceId == Data.ids.get(0) || rootSquareDiff < rootSquareDifThreshold){
                         name = Data.PARENT;
                         Data.updateNew(0,mFaceId,x,y,height,width);
                     }
@@ -317,9 +160,11 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                     }
                     Data.addUnknownToParent(0);
                     Data.addUnknownToChild(1);
+                    Data.Parent.lastTime = Data.Child.lastTime = currentTime;
+                    Data.isIdentified = true;
                 }
                 else if(Data.areadiff < -2500){
-                    if(mFaceId == Data.ids.get(0) || rootSquareDiff < 250){
+                    if(mFaceId == Data.ids.get(0) || rootSquareDiff < rootSquareDifThreshold){
                         name = Data.CHILD;
                         Data.updateNew(0,mFaceId,x,y,height,width);
                     }
@@ -329,18 +174,22 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                     }
                     Data.addUnknownToParent(1);
                     Data.addUnknownToChild(0);
+                    Data.Parent.lastTime = Data.Child.lastTime = currentTime;
+                    Data.isIdentified = true;
                 }
                 else{
                     Data.faceCount = 0;
                     name = Data.UNKNOWN;
                 }
             }
-            else{
+            else{  //Parent and Child already defined
+                boolean isSignificantFace = false;
                 float difX = Math.abs(x-Data.Parent.x);
                 float difY = Math.abs(y-Data.Parent.y);
                 double rootSquareDiff = Math.sqrt(difX*difX+difY*difY);
 
-                if(mFaceId == Data.Parent.id || rootSquareDiff < 250 ){
+                //Updating parent, child basic information and keep tracking.
+                if(mFaceId == Data.Parent.id || rootSquareDiff < rootSquareDifThreshold ){
                     name = Data.PARENT;
                     Data.updateNew(Data.ids.indexOf(Data.Parent.id), mFaceId,x,y,height,width);
                     Data.updateParent(mFaceId,x,y,height,width);
@@ -350,9 +199,143 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                     Data.updateNew(Data.ids.indexOf(Data.Child.id), mFaceId,x,y,height,width);
                     Data.updateChild(mFaceId,x,y,height,width);
                 }
+
+                //If the face is a significant face(occurs in each 300 milliseconds)
+                // Calculating features
+                if(name == Data.PARENT  && currentTime- Data.Parent.lastTime >= 300){
+                    isSignificantFace = true;
+                    Data.Parent.lastTime = currentTime;
+                }
+                else if(name == Data.CHILD  && currentTime- Data.Child.lastTime >= 300){
+                    isSignificantFace = true;
+                    Data.Child.lastTime = currentTime;
+                }
+
+                // Main face processing task happens once in each 300 milli seconds
+                if(isSignificantFace){
+
+                    float eulerY = face.getEulerY();
+                    float eulerZ = face.getEulerZ();
+
+                    float theta = Math.abs(eulerZ); //0-60
+                    float dirLineLength = Math.abs(eulerY)/60*1000;
+                    boolean isThetaPositive;
+                    boolean isLeft;
+                    double stopX;
+                    double stopY;
+
+                    float globalTheta; // 0-360
+
+                    //Drawing a looking direction line from the middle of the face. Using only rotation details
+                    //All the details according to the person, not the camera.
+                    if (eulerZ > 0) {isThetaPositive = false;}
+                    else {isThetaPositive = true;}
+                    if (eulerY > 0) {isLeft = false;}       // Left is person's left
+                    else {isLeft = true;}
+
+
+                    //Defining global theta(0-360) taking into consideration isThetaPositive and IsLeft
+                    if(isThetaPositive && isLeft){ // Third Quadrant (180-270) range 180(0)-240(60)
+                        globalTheta = 180 + theta;
+                    }
+                    else if(isThetaPositive && !isLeft){    // First Quadrant (0-90) range 0(0)-60(60)
+                        globalTheta = theta;
+                    }
+                    else if(!isThetaPositive && isLeft){   // Second Quadrant(90-180) range 120(60)-180(0)
+                        globalTheta =  180 - theta;
+                    }
+                    else{  //4th Quadrant (270-360)  range 300(60)-360(0)
+                        globalTheta = 360 - theta;
+                    }
+
+                    stopX = x_canvas+dirLineLength*Math.cos(Math.toRadians(globalTheta));
+                    stopY = y_canvas+dirLineLength*Math.sin(Math.toRadians(globalTheta));
+                    canvas.drawLine(x_canvas,y_canvas,(float)stopX,(float)stopY,mFacePositionPaint);
+
+                    //Detecting whether parent looking at child
+                    if(name == Data.PARENT){
+                        Data.Parent.globalTheta = globalTheta;
+
+                        double thetaThreshold1;   //to y-faceheight/3
+                        double thetaThreshold2;     //to y+faceheight/3
+                        double thetaThresholdHigh;
+                        double thetaThresholdLow;
+
+                        thetaThreshold1 = Math.atan2(Data.Child.y-Data.Child.faceHeight/4-y, Data.Child.x-x);
+                        thetaThreshold2 = Math.atan2(Data.Child.y+Data.Child.faceHeight/4-y, Data.Child.x-x);
+                        thetaThreshold1 = Math.toDegrees(thetaThreshold1);
+                        thetaThreshold2 = Math.toDegrees(thetaThreshold2);
+
+                        if(thetaThreshold1>thetaThreshold2){
+                            thetaThresholdHigh = thetaThreshold1;
+                            thetaThresholdLow = thetaThreshold2;
+                        }
+                        else{
+                            thetaThresholdHigh = thetaThreshold2;
+                            thetaThresholdLow = thetaThreshold1;
+                        }
+
+                        //if the two thresholds fall in first and fourth quadrants
+                        if(thetaThresholdHigh>270 && thetaThresholdLow<90){
+                            if(globalTheta>thetaThresholdHigh && globalTheta<thetaThresholdLow){
+                                Data.isParentLookingAtChild=true;
+                                Log.e("FaceGraphic","Parent looking at child");
+                            }
+                            else{Data.isParentLookingAtChild=false;}
+                        }
+                        //other cases
+                        else{
+                            if(globalTheta>thetaThresholdLow && globalTheta<thetaThresholdHigh){
+                                Data.isParentLookingAtChild=true;
+                                Log.e("FaceGraphic","Parent looking at child");
+                            }
+                            else{Data.isParentLookingAtChild=false;}
+                        }
+                    }
+                    //Detecting whether child looking at parent
+                    else{
+                        Data.Child.globalTheta = globalTheta;
+ 
+                        double thetaThreshold1;   //to y-faceheight/3
+                        double thetaThreshold2;     //to y+faceheight/3
+                        double thetaThresholdHigh;
+                        double thetaThresholdLow;
+
+                        thetaThreshold1 = Math.atan2(Data.Parent.y-Data.Parent.faceHeight/4-y, Data.Parent.x-x);
+                        thetaThreshold2 = Math.atan2(Data.Parent.y+Data.Parent.faceHeight/4-y, Data.Parent.x-x);
+                        thetaThreshold1 = Math.toDegrees(thetaThreshold1);
+                        thetaThreshold2 = Math.toDegrees(thetaThreshold2);
+
+                        if(thetaThreshold1>thetaThreshold2){
+                            thetaThresholdHigh = thetaThreshold1;
+                            thetaThresholdLow = thetaThreshold2;
+                        }
+                        else{
+                            thetaThresholdHigh = thetaThreshold2;
+                            thetaThresholdLow = thetaThreshold1;
+                        }
+
+                        //if the two thresholds fall in first and fourth quadrants
+                        if(thetaThresholdHigh>270 && thetaThresholdLow<90){
+                            if(globalTheta>thetaThresholdHigh && globalTheta<thetaThresholdLow){
+                                Data.isChildLookingAtParent=true;
+                                Log.e("FaceGraphic","Child looking at parent");
+                            }
+                            else{Data.isChildLookingAtParent=false;}
+                        }
+                        //other cases
+                        else{
+                            if(globalTheta>thetaThresholdLow && globalTheta<thetaThresholdHigh){
+                                Data.isChildLookingAtParent=true;
+                                Log.e("FaceGraphic","Child looking at parent");
+                            }
+                            else{Data.isChildLookingAtParent=false;}
+                        }
+                    }
+                }
             }
         }
 
-        canvas.drawText(name, x + ID_X_OFFSET, y + ID_Y_OFFSET, mIdPaint);
+        canvas.drawText(name, x_canvas + ID_X_OFFSET, y_canvas + ID_Y_OFFSET, mIdPaint);
     }
 }

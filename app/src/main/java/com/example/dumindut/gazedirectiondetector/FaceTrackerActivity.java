@@ -44,7 +44,7 @@ public final class FaceTrackerActivity extends AppCompatActivity {
 
     private CameraSourcePreview mPreview;
     private GraphicOverlay mGraphicOverlay;
-    private TextView textView;
+    private TextView emotionTextView;
 
     private static final int RC_HANDLE_GMS = 9001;
     // permission request codes need to be < 256
@@ -66,7 +66,7 @@ public final class FaceTrackerActivity extends AppCompatActivity {
 
         mPreview = (CameraSourcePreview) findViewById(R.id.preview);
         mGraphicOverlay = (GraphicOverlay) findViewById(R.id.faceOverlay);
-        textView = (TextView) findViewById(R.id.emotion_text_view);
+        emotionTextView = (TextView) findViewById(R.id.emotion_text_view);
 
         final Button flipButton = (Button) findViewById(R.id.flipButton);
         final Button resetButton = (Button) findViewById(R.id.resetButton);
@@ -128,7 +128,7 @@ public final class FaceTrackerActivity extends AppCompatActivity {
         FaceDetector faceDetector1 = new FaceDetector.Builder(context).build();
 
         // facedetector1 is wrapped with emotion detector
-        EmotionDetector emotionDetector = new EmotionDetector(faceDetector1,textView,client);
+        EmotionDetector emotionDetector = new EmotionDetector(faceDetector1,emotionTextView,client);
 
         //Setting processors for the two detectors
         faceDetector.setProcessor(new MultiProcessor.Builder<>(new GraphicFaceTrackerFactory())
@@ -233,6 +233,7 @@ public final class FaceTrackerActivity extends AppCompatActivity {
                 mCameraSource = null;
             }
             Data.clearData();
+            emotionTextView.setText("Emotions");
             createCameraSource();
             startCameraSource();
         }
@@ -246,6 +247,7 @@ public final class FaceTrackerActivity extends AppCompatActivity {
                 mCameraSource = null;
             }
             Data.clearData();
+            emotionTextView.setText("Emotions");
             createCameraSource();
             startCameraSource();
         }

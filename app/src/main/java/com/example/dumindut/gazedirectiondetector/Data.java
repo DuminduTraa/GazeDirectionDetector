@@ -34,14 +34,14 @@ public class Data {
     public static boolean isChildLookingAtParent = false;
     public static boolean hasEyeContact = false;
     public static boolean hasJointAttention = false;
-    public static String  parentEmotion1;
-    public static String parentEmotion2;
-    public static float parentEmotion1Value;
-    public static float parentEmotion2Value;
-    public static String childEmotion1;
-    public static String childEmotion2;
-    public static float childEmotion1Value;
-    public static float getChildEmotion2Value;
+    public static String  parentEmotion1 = "No Emotion";
+    public static String parentEmotion2 = "No Emotion";
+    public static float parentEmotion1Value = 0;
+    public static float parentEmotion2Value = 0;
+    public static String childEmotion1 = "No Emotion";
+    public static String childEmotion2 = "No Emotion";
+    public static float childEmotion1Value = 0;
+    public static float childEmotion2Value = 0;
 
     static void addNew(int id, float x, float y, float height, float width){
         ids.add(id);
@@ -66,8 +66,8 @@ public class Data {
 
     static void clearData(){
         ids.clear();
-        positionX.clear();;
-        positionY.clear();;
+        positionX.clear();
+        positionY.clear();
         faceHeight.clear();
         faceWidth.clear();
 

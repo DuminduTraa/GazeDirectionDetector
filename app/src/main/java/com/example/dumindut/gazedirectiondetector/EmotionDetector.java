@@ -25,24 +25,25 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
 
+import static java.lang.System.currentTimeMillis;
+
 /**
  * Created by dumindut on 4/10/2016.
  */
 public class EmotionDetector extends Detector<Face> {
     private Detector<Face> mDelegate;
-    private TextView emotionText;
+    public TextView resultTextView;
     private EmotionServiceRestClient client;
     private Frame theFrame;
     private long lastTime;
-    private long lastTimeForJointAttention;
     private static final float X_DIF_THRESHOLD = 10.0f;
     private static final float Y_DIF_THRESHOLD = 40.0f;
 
     EmotionDetector(Detector<Face> delegate, TextView textView, EmotionServiceRestClient client1) {
         mDelegate = delegate;
-        emotionText = textView;
+        resultTextView = textView;
         client = client1;
-        lastTime = lastTimeForJointAttention = System.currentTimeMillis();
+        lastTime = System.currentTimeMillis();
     }
 
     @Override
@@ -50,14 +51,10 @@ public class EmotionDetector extends Detector<Face> {
         // *** Custom frame processing code
         theFrame = frame;
 
-        if(System.currentTimeMillis()-lastTime > 3000 && Data.isIdentified){
-           doRecognizeEmotions();
-           lastTime = System.currentTimeMillis();
-        }
-
-        if(System.currentTimeMillis()-lastTimeForJointAttention > 300 && Data.isIdentified){
+        if(currentTimeMillis()-lastTime > 3000 && Data.isIdentified){
             recognizeFeatures();
-            lastTimeForJointAttention = System.currentTimeMillis();
+            doRecognizeEmotions();
+            lastTime = currentTimeMillis();
         }
 
         return mDelegate.detect(frame);
@@ -77,7 +74,7 @@ public class EmotionDetector extends Detector<Face> {
         try {
             new doRequest().execute();
         } catch (Exception e) {
-            emotionText.setText("Error encountered. Exception is: " + e.toString());
+            resultTextView.setText("Error encountered. Exception is: " + e.toString());
         }
     }
 
@@ -104,94 +101,82 @@ public class EmotionDetector extends Detector<Face> {
             super.onPostExecute(result);
             // Display based on error existence
             if (e != null) {
-                emotionText.setText("Error: " + e.getMessage());
+                resultTextView.setText("Error: " + e.getMessage());
                 //Log.e("error", e.getMessage());
                 this.e = null;
-            } else {
-                if (result.size() != 2) {
-                    emotionText.setText("Could not find two faces :(");
-                    //Log.e("error", "No emotion detected :(");
-                }
-                else {
-                    String resultText = "";
-                    String name;
+            }
+            else if (result.size() != 2) {
+                resultTextView.setText("Could not find two faces :(");
+            }
+            else {
+                for (RecognizeResult r : result) {
+                    float x = r.faceRectangle.left + r.faceRectangle.width/2;
+                    float y = r.faceRectangle.top + r.faceRectangle.height/2;
 
-                    for (RecognizeResult r : result) {
-                        float x = r.faceRectangle.left + r.faceRectangle.width/2;
-                        float y = r.faceRectangle.top + r.faceRectangle.height/2;
+                    String most = "";
+                    String secondMost = "";
+                    double mostValue = 0.;
+                    double secondMostValue = 0.;
 
-                        String most = "";
-                        String secondMost = "";
-                        double mostValue = 0.;
-                        double secondMostValue = 0.;
+                    double[] valueList = new double[8];
+                    valueList[0] = r.scores.anger;
+                    valueList[1] = r.scores.contempt;
+                    valueList[2] = r.scores.disgust;
+                    valueList[3] = r.scores.fear;
+                    valueList[4] = r.scores.happiness;
+                    valueList[5] = r.scores.neutral;
+                    valueList[6] = r.scores.sadness;
+                    valueList[7] = r.scores.surprise;
 
-                        double[] valueList = new double[8];
-                        valueList[0] = r.scores.anger;
-                        valueList[1] = r.scores.contempt;
-                        valueList[2] = r.scores.disgust;
-                        valueList[3] = r.scores.fear;
-                        valueList[4] = r.scores.happiness;
-                        valueList[5] = r.scores.neutral;
-                        valueList[6] = r.scores.sadness;
-                        valueList[7] = r.scores.surprise;
+                    String[] emotions = new String[8];
+                    emotions[0] = "Anger";
+                    emotions[1] = "Contempt";
+                    emotions[2] = "Disgust";
+                    emotions[3] = "Fear";
+                    emotions[4] = "Happiness";
+                    emotions[5] = "Neutral";
+                    emotions[6] = "Sadness";
+                    emotions[7] = "Surprise";
 
-                        String[] emotions = new String[8];
-                        emotions[0] = "Anger";
-                        emotions[1] = "Contempt";
-                        emotions[2] = "Disgust";
-                        emotions[3] = "Fear";
-                        emotions[4] = "Happiness";
-                        emotions[5] = "Neutral";
-                        emotions[6] = "Sadness";
-                        emotions[7] = "Surprise";
-
-                        for (int i=0;i<8;i++){
-                            if(valueList[i] > mostValue){
-                                secondMostValue = mostValue;
-                                secondMost = most;
-                                mostValue = valueList[i];
-                                most = emotions[i];
-                            }
-                            else if(valueList[i] > secondMostValue){
-                                secondMostValue = valueList[i];
-                                secondMost = emotions[i];
-                            }
+                    for (int i=0;i<8;i++){
+                        if(valueList[i] > mostValue){
+                            secondMostValue = mostValue;
+                            secondMost = most;
+                            mostValue = valueList[i];
+                            most = emotions[i];
                         }
-
-                        if(Math.abs(x-Data.Parent.x)<X_DIF_THRESHOLD && Math.abs(y-Data.Parent.y)<Y_DIF_THRESHOLD){
-                            name = Data.PARENT;
-                            Data.parentEmotion1 = most;
-                            Data.parentEmotion1Value = (float)mostValue;
-                            Data.parentEmotion2 = secondMost;
-                            Data.parentEmotion2Value = (float)secondMostValue;
+                        else if(valueList[i] > secondMostValue){
+                            secondMostValue = valueList[i];
+                            secondMost = emotions[i];
                         }
-                        else if(Math.abs(x-Data.Child.x)<X_DIF_THRESHOLD && Math.abs(y-Data.Child.y)<Y_DIF_THRESHOLD){
-                            name = Data.CHILD;
-                            Data.childEmotion1 = most;
-                            Data.childEmotion1Value = (float)mostValue;
-                            Data.childEmotion2 = secondMost;
-                            Data.getChildEmotion2Value = (float)secondMostValue;
-                        }
-                        else{name = Data.UNKNOWN;}
-
-                        resultText += "\n"+name + "\n";
-                        resultText += most + " : " + (int)(double)(mostValue*100) + "%\n";
-                        resultText += secondMost + " : " + (int)(double)(secondMostValue*100) + "%\n";
                     }
-                    emotionText.setText(resultText);
+
+                    if(Math.abs(x-Data.Parent.x)<X_DIF_THRESHOLD && Math.abs(y-Data.Parent.y)<Y_DIF_THRESHOLD){
+                        //Parent
+                        Data.parentEmotion1 = most;
+                        Data.parentEmotion1Value = (float)mostValue;
+                        Data.parentEmotion2 = secondMost;
+                        Data.parentEmotion2Value = (float)secondMostValue;
+                    }
+                    else if(Math.abs(x-Data.Child.x)<X_DIF_THRESHOLD && Math.abs(y-Data.Child.y)<Y_DIF_THRESHOLD){
+                        //Child
+                        Data.childEmotion1 = most;
+                        Data.childEmotion1Value = (float)mostValue;
+                        Data.childEmotion2 = secondMost;
+                        Data.childEmotion2Value = (float)secondMostValue;
+                    }
+                    else{}
                 }
+                showResults(resultTextView);
             }
         }
     }
 
 
     private List<RecognizeResult> processWithAutoFaceDetection() throws EmotionServiceException, IOException {
-        Log.d("emotion", "Start emotion detection with auto-face detection");
-
         Gson gson = new Gson();
 
         // Put the image into an input stream for detection.
-
         ByteBuffer byteBuffer = theFrame.getGrayscaleImageData();
         int width = theFrame.getMetadata().getWidth();
         int height = theFrame.getMetadata().getHeight();
@@ -217,7 +202,6 @@ public class EmotionDetector extends Detector<Face> {
         result = client.recognizeImage(inputStream);
 
         String json = gson.toJson(result);
-        Log.d("result", json);
 
         return result;
     }
@@ -230,20 +214,19 @@ public class EmotionDetector extends Detector<Face> {
                 bitmapSrc.getWidth(), bitmapSrc.getHeight(), matrix, true);
     }
 
-    //Method to check for Joint attention
+    //Method to check for Joint attention and eye contact
     private void recognizeFeatures(){
+        Data.hasEyeContact=false;
+        Data.hasJointAttention = false;
+
         //Checking for eye contact
         if(Data.isChildLookingAtParent && Data.isParentLookingAtChild){
             Data.hasEyeContact=true;
-            Log.e("faceGraphic","Eye Contact");
-        }
-        else{
-            Data.hasEyeContact=false;
         }
 
         //Checking for joint attention
         if(!Data.isChildLookingAtParent && !Data.isParentLookingAtChild){
-            Data.hasJointAttention = false;
+
             Data.meetX = 0;
             Data.meetY = 0;
             float x1 = Data.Parent.x;
@@ -265,10 +248,25 @@ public class EmotionDetector extends Detector<Face> {
                         Data.hasJointAttention = true;      //Two rays meet within the camera preview.
                         Data.meetX = (float)meetX;
                         Data.meetY = (float)meetY;
-                        Log.e("EmotionDetector","Joint Attention");
-                    }
+                }
                 }
             }
         }
+    }
+
+    public void showResults(TextView textView){
+        String resultText = "\n";
+
+        resultText += "Parent looking at child : " + Data.isParentLookingAtChild;
+        resultText += "\nChild looking at parent : " + Data.isChildLookingAtParent;
+        resultText += "\nEye Contact : " + Data.hasEyeContact;
+        resultText += "\nJoint Attention : " + Data. hasJointAttention;
+        resultText += "\nParent's emotions : " + Data.parentEmotion1 + ":" + Data.parentEmotion1Value
+                + "    " + Data.parentEmotion2 + ":" + Data. parentEmotion2Value;
+        resultText += "\nChild's emotions : " + Data.childEmotion1 + ":" + Data.childEmotion1Value
+                + "    " + Data.childEmotion2 + ":" + Data.childEmotion2Value;
+
+        textView.setText(resultText);
+        Log.d("  ", resultText);
     }
 }

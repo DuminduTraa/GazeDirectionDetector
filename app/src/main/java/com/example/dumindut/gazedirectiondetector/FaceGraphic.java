@@ -7,7 +7,6 @@ package com.example.dumindut.gazedirectiondetector;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.util.Log;
 
 import com.example.dumindut.gazedirectiondetector.ui.camera.GraphicOverlay;
 import com.google.android.gms.vision.face.Face;
@@ -254,10 +253,11 @@ class FaceGraphic extends GraphicOverlay.Graphic {
 
                     //Detecting whether parent looking at child
                     if(name == Data.PARENT){
+                        Data.isParentLookingAtChild = false;
                         Data.Parent.globalTheta = globalTheta;
 
-                        double thetaThreshold1;   //to y-faceheight/3
-                        double thetaThreshold2;     //to y+faceheight/3
+                        double thetaThreshold1;   //to y-faceheight/4
+                        double thetaThreshold2;     //to y+faceheight/4
                         double thetaThresholdHigh;
                         double thetaThresholdLow;
 
@@ -279,25 +279,22 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                         if(thetaThresholdHigh>270 && thetaThresholdLow<90){
                             if(globalTheta>thetaThresholdHigh && globalTheta<thetaThresholdLow){
                                 Data.isParentLookingAtChild=true;
-                                Log.e("FaceGraphic","Parent looking at child");
                             }
-                            else{Data.isParentLookingAtChild=false;}
                         }
                         //other cases
                         else{
                             if(globalTheta>thetaThresholdLow && globalTheta<thetaThresholdHigh){
                                 Data.isParentLookingAtChild=true;
-                                Log.e("FaceGraphic","Parent looking at child");
                             }
-                            else{Data.isParentLookingAtChild=false;}
                         }
                     }
                     //Detecting whether child looking at parent
                     else{
+                        Data.isChildLookingAtParent = false;
                         Data.Child.globalTheta = globalTheta;
  
-                        double thetaThreshold1;   //to y-faceheight/3
-                        double thetaThreshold2;     //to y+faceheight/3
+                        double thetaThreshold1;   //to y-faceheight/4
+                        double thetaThreshold2;     //to y+faceheight/4
                         double thetaThresholdHigh;
                         double thetaThresholdLow;
 
@@ -319,17 +316,13 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                         if(thetaThresholdHigh>270 && thetaThresholdLow<90){
                             if(globalTheta>thetaThresholdHigh && globalTheta<thetaThresholdLow){
                                 Data.isChildLookingAtParent=true;
-                                Log.e("FaceGraphic","Child looking at parent");
                             }
-                            else{Data.isChildLookingAtParent=false;}
                         }
                         //other cases
                         else{
                             if(globalTheta>thetaThresholdLow && globalTheta<thetaThresholdHigh){
                                 Data.isChildLookingAtParent=true;
-                                Log.e("FaceGraphic","Child looking at parent");
                             }
-                            else{Data.isChildLookingAtParent=false;}
                         }
                     }
                 }

@@ -30,10 +30,10 @@
         android:layout_margin="8dp"/>
 
     <TextView
-        android:id="@+id/emotion_text_view"
+        android:id="@+id/result_text_view"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Emotions"
+        android:text="Results"
         android:textColor="#FF0000"
         android:textSize="16sp"/>
 

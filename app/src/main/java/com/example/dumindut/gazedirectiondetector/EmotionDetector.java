@@ -18,14 +18,18 @@ import com.google.gson.Gson;
 import com.microsoft.projectoxford.emotion.EmotionServiceRestClient;
 import com.microsoft.projectoxford.emotion.contract.RecognizeResult;
 import com.microsoft.projectoxford.emotion.rest.EmotionServiceException;
+import com.microsoft.projectoxford.face.FaceServiceClient;
+import com.microsoft.projectoxford.face.FaceServiceRestClient;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.List;
 
 import static java.lang.System.currentTimeMillis;
+
 
 /**
  * Created by dumindut on 4/10/2016.
@@ -33,30 +37,35 @@ import static java.lang.System.currentTimeMillis;
 public class EmotionDetector extends Detector<Face> {
     private Detector<Face> mDelegate;
     public TextView resultTextView;
-    private EmotionServiceRestClient client;
+    private EmotionServiceRestClient emotionClient;
+    private FaceServiceRestClient faceClient;
     private Frame theFrame;
     private long lastTime;
     private static final float X_DIF_THRESHOLD = 10.0f;
     private static final float Y_DIF_THRESHOLD = 40.0f;
 
-    EmotionDetector(Detector<Face> delegate, TextView textView, EmotionServiceRestClient client1) {
+    EmotionDetector(Detector<Face> delegate, TextView textView, EmotionServiceRestClient client1,
+                                        FaceServiceRestClient client2) {
         mDelegate = delegate;
         resultTextView = textView;
-        client = client1;
-        lastTime = System.currentTimeMillis();
+        emotionClient = client1;
+        faceClient = client2;
+        lastTime = currentTimeMillis();
     }
 
     @Override
     public SparseArray<Face> detect(Frame frame) {
         // *** Custom frame processing code
         theFrame = frame;
-
         if(currentTimeMillis()-lastTime > 3000 && Data.isIdentified){
             recognizeFeatures();
             doRecognizeEmotions();
             lastTime = currentTimeMillis();
         }
-
+        if(currentTimeMillis()-lastTime > 3000 && !Data.isIdentified){
+            doDifferentiate();
+            lastTime = currentTimeMillis();
+        }
         return mDelegate.detect(frame);
     }
 
@@ -68,22 +77,102 @@ public class EmotionDetector extends Detector<Face> {
         return mDelegate.setFocus(id);
     }
 
+    public void doDifferentiate(){
+        ByteBuffer byteBuffer = theFrame.getGrayscaleImageData();
+        int width = theFrame.getMetadata().getWidth();
+        int height = theFrame.getMetadata().getHeight();
+        YuvImage yuvimage = new YuvImage(byteBuffer.array(), ImageFormat.NV21, width, height, null);
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        yuvimage.compressToJpeg(new Rect(0, 0, width, height), 100, output);
+        byte[] outputArray = output.toByteArray();
+
+        //If portrait, changing the outputArray
+        if (theFrame.getMetadata().getRotation() ==3){
+            Bitmap bmp = BitmapFactory.decodeByteArray(outputArray, 0, outputArray.length);
+            Bitmap rotatedBmp = rotateImage(bmp);
+            ByteArrayOutputStream output2 = new ByteArrayOutputStream();
+            rotatedBmp.compress(Bitmap.CompressFormat.JPEG, 100, output2);
+            outputArray = output2.toByteArray();
+        }
+
+        ByteArrayInputStream inputStream = new ByteArrayInputStream(outputArray);
+        new ageDetectionTask().execute(inputStream);
+    }
+
+    private class ageDetectionTask extends AsyncTask<InputStream, String, com.microsoft.projectoxford.face.contract.Face[]> {
+        private boolean mSucceed = true;
+
+        @Override
+        protected com.microsoft.projectoxford.face.contract.Face[] doInBackground(InputStream... params) {
+            // Get an instance of face service client to detect faces in image.
+            FaceServiceClient faceServiceClient = faceClient;
+            try {
+                return faceServiceClient.detect(params[0], false, false,
+                                    new FaceServiceClient.FaceAttributeType[] {
+                                                FaceServiceClient.FaceAttributeType.Age,});
+            } catch (Exception e) {
+                mSucceed = false;
+                Log.e("Age Detection",e.getMessage());
+                return null;
+            }
+        }
+
+        @Override
+        protected void onPostExecute(com.microsoft.projectoxford.face.contract.Face[] result) {
+            if (mSucceed && result.length==2) {
+                double x1 = result[0].faceRectangle.left + result[0].faceRectangle.width/2;
+                double x2 = result[1].faceRectangle.left + result[1].faceRectangle.width/2;
+                double y1 = result[0].faceRectangle.top + result[0].faceRectangle.height/2;
+                double y2 = result[1].faceRectangle.top + result[1].faceRectangle.height/2;
+                double age1 = result[0].faceAttributes.age;
+                double age2 = result[1].faceAttributes.age;
+                float width1 = result[0].faceRectangle.width;
+                float width2 = result[1].faceRectangle.width;
+                float height1 = result[0].faceRectangle.height;
+                float height2 = result[1].faceRectangle.height;
+
+                if(age1>age2){
+                    Data.Parent.x = (float)x1;
+                    Data.Parent.y = (float)y1;
+                    Data.Parent.faceWidth = width1;
+                    Data.Parent.faceHeight = height1;
+                    Data.Child.x = (float)x2;
+                    Data.Child.y = (float)y2;
+                    Data.Child.faceWidth = width2;
+                    Data.Child.faceHeight = height2;
+                }
+                else{
+                    Data.Parent.x = (float)x2;
+                    Data.Parent.y = (float)y2;
+                    Data.Parent.faceWidth = width2;
+                    Data.Parent.faceHeight = height2;
+                    Data.Child.x = (float)x1;
+                    Data.Child.y = (float)y1;
+                    Data.Child.faceWidth = width1;
+                    Data.Child.faceHeight = height1;
+                }
+                Data.isIdentified=true;
+            }
+        }
+    }
+
+
 
     public void doRecognizeEmotions() {
         // Do emotion detection using auto-detected faces.
         try {
-            new doRequest().execute();
+            new doRequestEmotions().execute();
         } catch (Exception e) {
             resultTextView.setText("Error encountered. Exception is: " + e.toString());
         }
     }
 
 
-    private class doRequest extends AsyncTask<String, String, List<RecognizeResult>> {
+    private class doRequestEmotions extends AsyncTask<String, String, List<RecognizeResult>> {
         // Store error message
         private Exception e = null;
 
-        public doRequest() {
+        public doRequestEmotions() {
         }
 
         @Override
@@ -172,7 +261,6 @@ public class EmotionDetector extends Detector<Face> {
         }
     }
 
-
     private List<RecognizeResult> processWithAutoFaceDetection() throws EmotionServiceException, IOException {
         Gson gson = new Gson();
 
@@ -199,7 +287,7 @@ public class EmotionDetector extends Detector<Face> {
         ByteArrayInputStream inputStream = new ByteArrayInputStream(outputArray);
 
         List<RecognizeResult> result = null;
-        result = client.recognizeImage(inputStream);
+        result = emotionClient.recognizeImage(inputStream);
 
         String json = gson.toJson(result);
 

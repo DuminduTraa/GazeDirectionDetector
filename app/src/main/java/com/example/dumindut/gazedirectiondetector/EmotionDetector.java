@@ -43,6 +43,7 @@ public class EmotionDetector extends Detector<Face> {
     private long lastTime;
     private static final float X_DIF_THRESHOLD = 10.0f;
     private static final float Y_DIF_THRESHOLD = 40.0f;
+    private int count = 0;
 
     EmotionDetector(Detector<Face> delegate, TextView textView, EmotionServiceRestClient client1,
                                         FaceServiceRestClient client2) {
@@ -58,13 +59,17 @@ public class EmotionDetector extends Detector<Face> {
         // *** Custom frame processing code
         theFrame = frame;
         if(currentTimeMillis()-lastTime > 3000 && Data.isIdentified){
+            if(count == 3){
+                doDifferentiate();;
+                count = 0;
+            }
             recognizeFeatures();
             doRecognizeEmotions();
             lastTime = currentTimeMillis();
+            count++;
         }
         if(currentTimeMillis()-lastTime > 3000 && !Data.isIdentified){
             doDifferentiate();
-            lastTime = currentTimeMillis();
         }
         return mDelegate.detect(frame);
     }
@@ -152,6 +157,7 @@ public class EmotionDetector extends Detector<Face> {
                     Data.Child.faceHeight = height1;
                 }
                 Data.isIdentified=true;
+                lastTime = currentTimeMillis();
             }
         }
     }

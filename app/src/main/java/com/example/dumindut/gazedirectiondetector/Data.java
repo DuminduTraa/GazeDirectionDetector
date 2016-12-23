@@ -53,7 +53,7 @@ public class Data {
     }
 
     public static class Parent {
-        public static int id = -1 ;
+        public static int id = -1;
         public static float x;
         public static float y;
         public static float faceWidth;

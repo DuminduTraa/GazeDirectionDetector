@@ -172,80 +172,9 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                 stopY = y_canvas+dirLineLength*Math.sin(Math.toRadians(globalTheta));
                 canvas.drawLine(x_canvas,y_canvas,(float)stopX,(float)stopY,mFacePositionPaint);
 
-                //Detecting whether parent looking at child
-                if(name == Data.PARENT){
-                    Data.isParentLookingAtChild = false;
-                    Data.Parent.globalTheta = globalTheta;
-
-                    double thetaThreshold1;   //to y-faceheight/4
-                    double thetaThreshold2;     //to y+faceheight/4
-                    double thetaThresholdHigh;
-                    double thetaThresholdLow;
-
-                    thetaThreshold1 = Math.atan2(Data.Child.y-Data.Child.faceHeight/4-y, Data.Child.x-x);
-                    thetaThreshold2 = Math.atan2(Data.Child.y+Data.Child.faceHeight/4-y, Data.Child.x-x);
-                    thetaThreshold1 = Math.toDegrees(thetaThreshold1);
-                    thetaThreshold2 = Math.toDegrees(thetaThreshold2);
-
-                    if(thetaThreshold1>thetaThreshold2){
-                        thetaThresholdHigh = thetaThreshold1;
-                        thetaThresholdLow = thetaThreshold2;
-                    }
-                    else{
-                        thetaThresholdHigh = thetaThreshold2;
-                        thetaThresholdLow = thetaThreshold1;
-                    }
-
-                    //if the two thresholds fall in first and fourth quadrants
-                    if(thetaThresholdHigh>270 && thetaThresholdLow<90){
-                        if(globalTheta>thetaThresholdHigh && globalTheta<thetaThresholdLow){
-                            Data.isParentLookingAtChild=true;
-                        }
-                    }
-                    //other cases
-                    else{
-                        if(globalTheta>thetaThresholdLow && globalTheta<thetaThresholdHigh){
-                            Data.isParentLookingAtChild=true;
-                        }
-                    }
-                }
-                //Detecting whether child looking at parent
-                else if(name == Data.CHILD){
-                    Data.isChildLookingAtParent = false;
-                    Data.Child.globalTheta = globalTheta;
-
-                    double thetaThreshold1;   //to y-faceheight/4
-                    double thetaThreshold2;     //to y+faceheight/4
-                    double thetaThresholdHigh;
-                    double thetaThresholdLow;
-
-                    thetaThreshold1 = Math.atan2(Data.Parent.y-Data.Parent.faceHeight/4-y, Data.Parent.x-x);
-                    thetaThreshold2 = Math.atan2(Data.Parent.y+Data.Parent.faceHeight/4-y, Data.Parent.x-x);
-                    thetaThreshold1 = Math.toDegrees(thetaThreshold1);
-                    thetaThreshold2 = Math.toDegrees(thetaThreshold2);
-
-                    if(thetaThreshold1>thetaThreshold2){
-                        thetaThresholdHigh = thetaThreshold1;
-                        thetaThresholdLow = thetaThreshold2;
-                    }
-                    else{
-                        thetaThresholdHigh = thetaThreshold2;
-                        thetaThresholdLow = thetaThreshold1;
-                    }
-
-                    //if the two thresholds fall in first and fourth quadrants
-                    if(thetaThresholdHigh>270 && thetaThresholdLow<90){
-                        if(globalTheta>thetaThresholdHigh && globalTheta<thetaThresholdLow){
-                            Data.isChildLookingAtParent=true;
-                        }
-                    }
-                    //other cases
-                    else{
-                        if(globalTheta>thetaThresholdLow && globalTheta<thetaThresholdHigh){
-                            Data.isChildLookingAtParent=true;
-                        }
-                    }
-                }
+                //Assinging globalTheta to relevant person
+                if(name == Data.PARENT){Data.Parent.globalTheta = globalTheta;}
+                if(name == Data.CHILD){Data.Child.globalTheta = globalTheta;}
             }
         }
         else{

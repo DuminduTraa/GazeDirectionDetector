@@ -68,8 +68,9 @@ public class EmotionDetector extends Detector<Face> {
             lastTime = currentTimeMillis();
             count++;
         }
-        if(currentTimeMillis()-lastTime > 3000 && !Data.isIdentified){
+        if(currentTimeMillis()-lastTime > 2000 && !Data.isIdentified){
             doDifferentiate();
+            lastTime = currentTimeMillis();
         }
         return mDelegate.detect(frame);
     }
@@ -100,8 +101,8 @@ public class EmotionDetector extends Detector<Face> {
             outputArray = output2.toByteArray();
         }
 
-        ByteArrayInputStream inputStream = new ByteArrayInputStream(outputArray);
-        new ageDetectionTask().execute(inputStream);
+         ByteArrayInputStream inputStream = new ByteArrayInputStream(outputArray);
+         new ageDetectionTask().execute(inputStream);
     }
 
     private class ageDetectionTask extends AsyncTask<InputStream, String, com.microsoft.projectoxford.face.contract.Face[]> {
@@ -157,7 +158,6 @@ public class EmotionDetector extends Detector<Face> {
                     Data.Child.faceHeight = height1;
                 }
                 Data.isIdentified=true;
-                lastTime = currentTimeMillis();
             }
         }
     }
@@ -308,19 +308,86 @@ public class EmotionDetector extends Detector<Face> {
                 bitmapSrc.getWidth(), bitmapSrc.getHeight(), matrix, true);
     }
 
-    //Method to check for Joint attention and eye contact
+    //Method to check for features other than emotions
     private void recognizeFeatures(){
+        Data.isParentLookingAtChild = false;
+        Data.isChildLookingAtParent = false;
         Data.hasEyeContact=false;
         Data.hasJointAttention = false;
 
-        //Checking for eye contact
+        double thetaThreshold1;   //to y-faceheight/4
+        double thetaThreshold2;     //to y+faceheight/4
+        double thetaThresholdHigh;
+        double thetaThresholdLow;
+        float globalTheta;
+
+        /////////////////////////////////////////////////////////////////////////////////////////
+        // Detecting whether parent looking at child
+        globalTheta = Data.Parent.globalTheta;
+        thetaThreshold1 = Math.atan2(Data.Child.y-Data.Child.faceHeight/4-Data.Parent.y, Data.Child.x-Data.Parent.x);
+        thetaThreshold2 = Math.atan2(Data.Child.y+Data.Child.faceHeight/4-Data.Parent.y, Data.Child.x-Data.Parent.x);
+        thetaThreshold1 = Math.toDegrees(thetaThreshold1);
+        thetaThreshold2 = Math.toDegrees(thetaThreshold2);
+
+        if(thetaThreshold1>thetaThreshold2){
+            thetaThresholdHigh = thetaThreshold1;
+            thetaThresholdLow = thetaThreshold2;
+        }
+        else{
+            thetaThresholdHigh = thetaThreshold2;
+            thetaThresholdLow = thetaThreshold1;
+        }
+        //if the two thresholds fall in first and fourth quadrants
+        if(thetaThresholdHigh>270 && thetaThresholdLow<90){
+            if(globalTheta>thetaThresholdHigh && globalTheta<thetaThresholdLow){
+                Data.isParentLookingAtChild=true;
+            }
+        }
+        //other cases
+        else{
+            if(globalTheta>thetaThresholdLow && globalTheta<thetaThresholdHigh){
+                Data.isParentLookingAtChild=true;
+            }
+        }
+
+        ///////////////////////////////////////////////////////////////////////////////////////////
+        // Checking whether child looking at parent
+        globalTheta = Data.Child.globalTheta;
+        thetaThreshold1 = Math.atan2(Data.Parent.y-Data.Parent.faceHeight/4-Data.Child.y, Data.Parent.x-Data.Child.x);
+        thetaThreshold2 = Math.atan2(Data.Parent.y+Data.Parent.faceHeight/4-Data.Child.y, Data.Parent.x-Data.Child.x);
+        thetaThreshold1 = Math.toDegrees(thetaThreshold1);
+        thetaThreshold2 = Math.toDegrees(thetaThreshold2);
+
+        if(thetaThreshold1>thetaThreshold2){
+            thetaThresholdHigh = thetaThreshold1;
+            thetaThresholdLow = thetaThreshold2;
+        }
+        else{
+            thetaThresholdHigh = thetaThreshold2;
+            thetaThresholdLow = thetaThreshold1;
+        }
+        //if the two thresholds fall in first and fourth quadrants
+        if(thetaThresholdHigh>270 && thetaThresholdLow<90){
+            if(globalTheta>thetaThresholdHigh && globalTheta<thetaThresholdLow){
+                Data.isParentLookingAtChild=true;
+            }
+        }
+        //other cases
+        else{
+            if(globalTheta>thetaThresholdLow && globalTheta<thetaThresholdHigh){
+                Data.isParentLookingAtChild=true;
+            }
+        }
+
+        //////////////////////////////////////////////////////////////////////////////////////////
+        // Checking for eye contact
         if(Data.isChildLookingAtParent && Data.isParentLookingAtChild){
             Data.hasEyeContact=true;
         }
 
-        //Checking for joint attention
+        /////////////////////////////////////////////////////////////////////////////////////////
+        // Checking for joint attention
         if(!Data.isChildLookingAtParent && !Data.isParentLookingAtChild){
-
             Data.meetX = 0;
             Data.meetY = 0;
             float x1 = Data.Parent.x;
@@ -342,7 +409,7 @@ public class EmotionDetector extends Detector<Face> {
                         Data.hasJointAttention = true;      //Two rays meet within the camera preview.
                         Data.meetX = (float)meetX;
                         Data.meetY = (float)meetY;
-                }
+                    }
                 }
             }
         }

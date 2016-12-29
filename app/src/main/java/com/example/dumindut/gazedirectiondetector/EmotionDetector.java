@@ -14,7 +14,6 @@ import android.widget.TextView;
 import com.google.android.gms.vision.Detector;
 import com.google.android.gms.vision.Frame;
 import com.google.android.gms.vision.face.Face;
-import com.google.gson.Gson;
 import com.microsoft.projectoxford.emotion.EmotionServiceRestClient;
 import com.microsoft.projectoxford.emotion.contract.RecognizeResult;
 import com.microsoft.projectoxford.emotion.rest.EmotionServiceException;
@@ -39,7 +38,7 @@ public class EmotionDetector extends Detector<Face> {
     public TextView resultTextView;
     private EmotionServiceRestClient emotionClient;
     private FaceServiceRestClient faceClient;
-    private Frame theFrame;
+    private byte[] outputArray;
     private long lastTime;
     private static final float X_DIF_THRESHOLD = 10.0f;
     private static final float Y_DIF_THRESHOLD = 40.0f;
@@ -57,9 +56,9 @@ public class EmotionDetector extends Detector<Face> {
     @Override
     public SparseArray<Face> detect(Frame frame) {
         // *** Custom frame processing code
-        theFrame = frame;
         if(currentTimeMillis()-lastTime > 3000 && Data.isIdentified){
-            if(count == 3){
+            outputArray = getByteArray(frame);
+            if(count == 1){
                 doDifferentiate();;
                 count = 0;
             }
@@ -69,6 +68,7 @@ public class EmotionDetector extends Detector<Face> {
             count++;
         }
         if(currentTimeMillis()-lastTime > 2000 && !Data.isIdentified){
+            outputArray = getByteArray(frame);
             doDifferentiate();
             lastTime = currentTimeMillis();
         }
@@ -84,23 +84,6 @@ public class EmotionDetector extends Detector<Face> {
     }
 
     public void doDifferentiate(){
-        ByteBuffer byteBuffer = theFrame.getGrayscaleImageData();
-        int width = theFrame.getMetadata().getWidth();
-        int height = theFrame.getMetadata().getHeight();
-        YuvImage yuvimage = new YuvImage(byteBuffer.array(), ImageFormat.NV21, width, height, null);
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
-        yuvimage.compressToJpeg(new Rect(0, 0, width, height), 100, output);
-        byte[] outputArray = output.toByteArray();
-
-        //If portrait, changing the outputArray
-        if (theFrame.getMetadata().getRotation() ==3){
-            Bitmap bmp = BitmapFactory.decodeByteArray(outputArray, 0, outputArray.length);
-            Bitmap rotatedBmp = rotateImage(bmp);
-            ByteArrayOutputStream output2 = new ByteArrayOutputStream();
-            rotatedBmp.compress(Bitmap.CompressFormat.JPEG, 100, output2);
-            outputArray = output2.toByteArray();
-        }
-
          ByteArrayInputStream inputStream = new ByteArrayInputStream(outputArray);
          new ageDetectionTask().execute(inputStream);
     }
@@ -162,8 +145,6 @@ public class EmotionDetector extends Detector<Face> {
         }
     }
 
-
-
     public void doRecognizeEmotions() {
         // Do emotion detection using auto-detected faces.
         try {
@@ -172,7 +153,6 @@ public class EmotionDetector extends Detector<Face> {
             resultTextView.setText("Error encountered. Exception is: " + e.toString());
         }
     }
-
 
     private class doRequestEmotions extends AsyncTask<String, String, List<RecognizeResult>> {
         // Store error message
@@ -268,35 +248,8 @@ public class EmotionDetector extends Detector<Face> {
     }
 
     private List<RecognizeResult> processWithAutoFaceDetection() throws EmotionServiceException, IOException {
-        Gson gson = new Gson();
-
-        // Put the image into an input stream for detection.
-        ByteBuffer byteBuffer = theFrame.getGrayscaleImageData();
-        int width = theFrame.getMetadata().getWidth();
-        int height = theFrame.getMetadata().getHeight();
-        YuvImage yuvimage = new YuvImage(byteBuffer.array(), ImageFormat.NV21, width, height, null);
-
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
-        yuvimage.compressToJpeg(new Rect(0, 0, width, height), 100, output);
-
-        byte[] outputArray = output.toByteArray();
-
-        //If portrait, changing the outputArray
-        if (theFrame.getMetadata().getRotation() ==3){
-            Bitmap bmp = BitmapFactory.decodeByteArray(outputArray, 0, outputArray.length);
-            Bitmap rotatedBmp = rotateImage(bmp);
-            ByteArrayOutputStream output2 = new ByteArrayOutputStream();
-            rotatedBmp.compress(Bitmap.CompressFormat.JPEG, 100, output2);
-            outputArray = output2.toByteArray();
-        }
-
         ByteArrayInputStream inputStream = new ByteArrayInputStream(outputArray);
-
-        List<RecognizeResult> result = null;
-        result = emotionClient.recognizeImage(inputStream);
-
-        String json = gson.toJson(result);
-
+        List<RecognizeResult> result = emotionClient.recognizeImage(inputStream);
         return result;
     }
 
@@ -409,6 +362,8 @@ public class EmotionDetector extends Detector<Face> {
                         Data.hasJointAttention = true;      //Two rays meet within the camera preview.
                         Data.meetX = (float)meetX;
                         Data.meetY = (float)meetY;
+
+
                     }
                 }
             }
@@ -429,5 +384,26 @@ public class EmotionDetector extends Detector<Face> {
 
         textView.setText(resultText);
         Log.d("  ", resultText);
+    }
+
+    public byte[] getByteArray(Frame frame){
+        int width = frame.getMetadata().getWidth();
+        int height = frame.getMetadata().getHeight();
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+
+        ByteBuffer byteBuffer = frame.getGrayscaleImageData();
+        YuvImage yuvimage = new YuvImage(byteBuffer.array(), ImageFormat.NV21, width, height, null);
+        yuvimage.compressToJpeg(new Rect(0, 0, width, height), 100, output);
+        byte[] outputArray = output.toByteArray();
+
+        //If portrait, changing the outputArray
+        if (frame.getMetadata().getRotation() ==3){
+            Bitmap bmp = BitmapFactory.decodeByteArray(outputArray, 0, outputArray.length);
+            Bitmap rotatedBmp = rotateImage(bmp);
+            ByteArrayOutputStream output2 = new ByteArrayOutputStream();
+            rotatedBmp.compress(Bitmap.CompressFormat.JPEG, 100, output2);
+            outputArray = output2.toByteArray();
+        }
+        return outputArray;
     }
 }

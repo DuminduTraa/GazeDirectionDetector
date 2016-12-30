@@ -16,14 +16,13 @@ import com.google.android.gms.vision.Frame;
 import com.google.android.gms.vision.face.Face;
 import com.microsoft.projectoxford.emotion.EmotionServiceRestClient;
 import com.microsoft.projectoxford.emotion.contract.RecognizeResult;
-import com.microsoft.projectoxford.emotion.rest.EmotionServiceException;
 import com.microsoft.projectoxford.face.FaceServiceClient;
 import com.microsoft.projectoxford.face.FaceServiceRestClient;
+import com.microsoft.projectoxford.vision.VisionServiceRestClient;
+import com.microsoft.projectoxford.vision.contract.AnalysisResult;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.List;
 
@@ -38,6 +37,7 @@ public class EmotionDetector extends Detector<Face> {
     public TextView resultTextView;
     private EmotionServiceRestClient emotionClient;
     private FaceServiceRestClient faceClient;
+    private VisionServiceRestClient visionClient;
     private byte[] outputArray;
     private long lastTime;
     private static final float X_DIF_THRESHOLD = 10.0f;
@@ -45,11 +45,12 @@ public class EmotionDetector extends Detector<Face> {
     private int count = 0;
 
     EmotionDetector(Detector<Face> delegate, TextView textView, EmotionServiceRestClient client1,
-                                        FaceServiceRestClient client2) {
+                    FaceServiceRestClient client2, VisionServiceRestClient client3) {
         mDelegate = delegate;
         resultTextView = textView;
         emotionClient = client1;
         faceClient = client2;
+        visionClient = client3;
         lastTime = currentTimeMillis();
     }
 
@@ -84,31 +85,45 @@ public class EmotionDetector extends Detector<Face> {
     }
 
     public void doDifferentiate(){
-         ByteArrayInputStream inputStream = new ByteArrayInputStream(outputArray);
-         new ageDetectionTask().execute(inputStream);
+        try{
+            new ageDetectionTask().execute();
+        }
+        catch(Exception e){
+            resultTextView.setText("Error encountered in age detection : " + e.toString());
+            Log.e("Age detection ",e.toString());
+        }
+
     }
 
-    private class ageDetectionTask extends AsyncTask<InputStream, String, com.microsoft.projectoxford.face.contract.Face[]> {
-        private boolean mSucceed = true;
+    private class ageDetectionTask extends AsyncTask<String, String, com.microsoft.projectoxford.face.contract.Face[]> {
+        private Exception e = null;
+        public ageDetectionTask(){}
 
         @Override
-        protected com.microsoft.projectoxford.face.contract.Face[] doInBackground(InputStream... params) {
-            // Get an instance of face service client to detect faces in image.
-            FaceServiceClient faceServiceClient = faceClient;
+        protected com.microsoft.projectoxford.face.contract.Face[] doInBackground(String...args) {
             try {
-                return faceServiceClient.detect(params[0], false, false,
+                ByteArrayInputStream inputStream = new ByteArrayInputStream(outputArray);
+                return faceClient.detect(inputStream, false, false,
                                     new FaceServiceClient.FaceAttributeType[] {
                                                 FaceServiceClient.FaceAttributeType.Age,});
             } catch (Exception e) {
-                mSucceed = false;
-                Log.e("Age Detection",e.getMessage());
-                return null;
+                this.e = e;
             }
+            return null;
         }
 
         @Override
         protected void onPostExecute(com.microsoft.projectoxford.face.contract.Face[] result) {
-            if (mSucceed && result.length==2) {
+            if (e != null) {
+                resultTextView.setText("Error, age detection: " + e.getMessage());
+                Log.e("Age detection", e.getMessage());
+                this.e = null;
+            }
+            else if (result.length!=2) {
+                resultTextView.setText("Could not find two faces for age detection:(");
+                Log.e("Age detection", "Could not find two faces");
+            }
+            else {
                 double x1 = result[0].faceRectangle.left + result[0].faceRectangle.width/2;
                 double x2 = result[1].faceRectangle.left + result[1].faceRectangle.width/2;
                 double y1 = result[0].faceRectangle.top + result[0].faceRectangle.height/2;
@@ -148,23 +163,24 @@ public class EmotionDetector extends Detector<Face> {
     public void doRecognizeEmotions() {
         // Do emotion detection using auto-detected faces.
         try {
-            new doRequestEmotions().execute();
-        } catch (Exception e) {
-            resultTextView.setText("Error encountered. Exception is: " + e.toString());
+            new emotionDetectionTask().execute();
+        }
+        catch (Exception e) {
+            resultTextView.setText("Error encountered in emotion detection : " + e.toString());
+            Log.e("Emotion detection ",e.toString());
         }
     }
 
-    private class doRequestEmotions extends AsyncTask<String, String, List<RecognizeResult>> {
-        // Store error message
+    private class emotionDetectionTask extends AsyncTask<String, String, List<RecognizeResult>> {
         private Exception e = null;
-
-        public doRequestEmotions() {
-        }
+        public emotionDetectionTask() {}
 
         @Override
         protected List<RecognizeResult> doInBackground(String... args) {
             try {
-                return processWithAutoFaceDetection();
+                ByteArrayInputStream inputStream = new ByteArrayInputStream(outputArray);
+                List<RecognizeResult> result = emotionClient.recognizeImage(inputStream);
+                return result;
             } catch (Exception e) {
                 this.e = e;    // Store error
             }
@@ -176,12 +192,13 @@ public class EmotionDetector extends Detector<Face> {
             super.onPostExecute(result);
             // Display based on error existence
             if (e != null) {
-                resultTextView.setText("Error: " + e.getMessage());
-                //Log.e("error", e.getMessage());
+                resultTextView.setText("Error, emotion detection: " + e.getMessage());
+                Log.e("Emotion detection ", e.getMessage());
                 this.e = null;
             }
             else if (result.size() != 2) {
-                resultTextView.setText("Could not find two faces :(");
+                resultTextView.setText("Could not find two faces for emotion detection :(");
+                Log.e("Emotion detection ", " Could not find two faces'");
             }
             else {
                 for (RecognizeResult r : result) {
@@ -245,12 +262,6 @@ public class EmotionDetector extends Detector<Face> {
                 showResults(resultTextView);
             }
         }
-    }
-
-    private List<RecognizeResult> processWithAutoFaceDetection() throws EmotionServiceException, IOException {
-        ByteArrayInputStream inputStream = new ByteArrayInputStream(outputArray);
-        List<RecognizeResult> result = emotionClient.recognizeImage(inputStream);
-        return result;
     }
 
     //Method to rotate bitmap by 90degrees clockwise
@@ -359,12 +370,70 @@ public class EmotionDetector extends Detector<Face> {
 
                 if(meetX < Data.previewWidth-Data.Parent.faceWidth/2 && meetX > Data.Parent.faceWidth/2){
                     if(meetY < Data.previewHeight-Data.Parent.faceHeight/2 && meetY > Data.Parent.faceHeight/2){
-                        Data.hasJointAttention = true;      //Two rays meet within the camera preview.
+                        //Two rays meet within the camera preview.
                         Data.meetX = (float)meetX;
                         Data.meetY = (float)meetY;
-
-
+                        doDescribe();
                     }
+                }
+            }
+        }
+    }
+
+    public void doDescribe() {
+        try {
+            new objectDetectionTask().execute();
+        }
+        catch (Exception e)
+        {
+            resultTextView.setText("Error encountered in object detection " + e.toString());
+            Log.e("Object detection ",e.toString());
+        }
+    }
+
+    private class objectDetectionTask extends AsyncTask<String, String, AnalysisResult> {
+        // Store error message
+        private Exception e = null;
+        public objectDetectionTask() {}
+
+        @Override
+        protected AnalysisResult doInBackground(String... args) {
+            try {
+                float crop_x = Data.meetX-Data.Parent.faceWidth/2;
+                float crop_y = Data.meetY-Data.Parent.faceHeight/2;
+
+                Bitmap fullBitmap = BitmapFactory.decodeByteArray(outputArray, 0, outputArray.length);
+                Bitmap croppedBitmap = Bitmap.createBitmap(fullBitmap, (int)crop_x, (int)crop_y,
+                        (int)Data.Parent.faceWidth, (int)Data.Parent.faceHeight);
+
+                ByteArrayOutputStream output = new ByteArrayOutputStream();
+                croppedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, output);
+                ByteArrayInputStream inputStream = new ByteArrayInputStream(output.toByteArray());
+
+                AnalysisResult result = visionClient.describe(inputStream, 1);
+                return  result;
+
+            } catch (Exception e) {
+                this.e = e;    // Store error
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(AnalysisResult result) {
+            super.onPostExecute(result);
+            // Display based on error existence
+
+            if (e != null) {
+                resultTextView.setText("Error, object detection: " + e.getMessage());
+                Log.e("Object detection ", e.getMessage());
+                this.e = null;
+            }
+            else {
+                for (String tag: result.description.tags) {
+                   if(tag.equals("toy")){
+                       Data.hasJointAttention=true;
+                   }
                 }
             }
         }

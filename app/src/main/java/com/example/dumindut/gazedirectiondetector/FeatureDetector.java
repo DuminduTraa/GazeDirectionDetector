@@ -32,7 +32,7 @@ import static java.lang.System.currentTimeMillis;
 /**
  * Created by dumindut on 4/10/2016.
  */
-public class EmotionDetector extends Detector<Face> {
+public class FeatureDetector extends Detector<Face> {
     private Detector<Face> mDelegate;
     public TextView resultTextView;
     private EmotionServiceRestClient emotionClient;
@@ -44,7 +44,7 @@ public class EmotionDetector extends Detector<Face> {
     private static final float Y_DIF_THRESHOLD = 40.0f;
     private int count = 0;
 
-    EmotionDetector(Detector<Face> delegate, TextView textView, EmotionServiceRestClient client1,
+    FeatureDetector(Detector<Face> delegate, TextView textView, EmotionServiceRestClient client1,
                     FaceServiceRestClient client2, VisionServiceRestClient client3) {
         mDelegate = delegate;
         resultTextView = textView;
@@ -104,8 +104,8 @@ public class EmotionDetector extends Detector<Face> {
             try {
                 ByteArrayInputStream inputStream = new ByteArrayInputStream(outputArray);
                 return faceClient.detect(inputStream, false, false,
-                                    new FaceServiceClient.FaceAttributeType[] {
-                                                FaceServiceClient.FaceAttributeType.Age,});
+                        new FaceServiceClient.FaceAttributeType[] {
+                                FaceServiceClient.FaceAttributeType.Age,});
             } catch (Exception e) {
                 this.e = e;
             }
@@ -431,9 +431,9 @@ public class EmotionDetector extends Detector<Face> {
             }
             else {
                 for (String tag: result.description.tags) {
-                   if(tag.equals("toy")){
-                       Data.hasJointAttention=true;
-                   }
+                    if(tag.equals("toy")){
+                        Data.hasJointAttention=true;
+                    }
                 }
             }
         }

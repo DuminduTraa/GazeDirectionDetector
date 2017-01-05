@@ -24,6 +24,8 @@ import com.microsoft.projectoxford.vision.contract.AnalysisResult;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static java.lang.System.currentTimeMillis;
@@ -43,6 +45,9 @@ public class FeatureDetector extends Detector<Face> {
     private static final float X_DIF_THRESHOLD = 10.0f;
     private static final float Y_DIF_THRESHOLD = 40.0f;
     private int count = 0;
+    private static final String[] tags = {"colored","dog","animal","stiffed","bear","teddy","toy",
+            "colorful","decorated","plastic","sign"};
+    private static final ArrayList<String> taglist = new ArrayList<String>(Arrays.asList(tags));
 
     FeatureDetector(Detector<Face> delegate, TextView textView, EmotionServiceRestClient client1,
                     FaceServiceRestClient client2, VisionServiceRestClient client3) {
@@ -431,8 +436,9 @@ public class FeatureDetector extends Detector<Face> {
             }
             else {
                 for (String tag: result.description.tags) {
-                    if(tag.equals("toy")){
+                    if(taglist.contains(tag)){
                         Data.hasJointAttention=true;
+                        break;
                     }
                 }
             }

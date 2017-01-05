@@ -27,6 +27,7 @@ dependencies {
 
     compile 'com.microsoft.projectoxford:emotion:1.0.0'
     compile 'com.microsoft.projectoxford:face:1.0.0'
+    compile 'com.microsoft.projectoxford:vision:1.0.354'
     compile 'com.google.code.gson:gson:2.5'
 
     compile 'com.microsoft.projectoxford:face:1.2.1'

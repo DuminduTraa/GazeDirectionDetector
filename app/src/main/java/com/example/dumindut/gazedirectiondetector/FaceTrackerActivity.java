@@ -25,15 +25,13 @@ import com.example.dumindut.gazedirectiondetector.ui.camera.GraphicOverlay;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.vision.CameraSource;
-import com.google.android.gms.vision.Detector;
-import com.google.android.gms.vision.MultiDetector;
 import com.google.android.gms.vision.MultiProcessor;
 import com.google.android.gms.vision.Tracker;
 import com.google.android.gms.vision.face.Face;
 import com.google.android.gms.vision.face.FaceDetector;
-import com.google.android.gms.vision.face.LargestFaceFocusingProcessor;
 import com.microsoft.projectoxford.emotion.EmotionServiceRestClient;
 import com.microsoft.projectoxford.face.FaceServiceRestClient;
+import com.microsoft.projectoxford.vision.VisionServiceRestClient;
 
 import java.io.IOException;
 
@@ -53,8 +51,9 @@ public final class FaceTrackerActivity extends AppCompatActivity {
 
     private boolean mIsFrontFacing = true;
 
-    public EmotionServiceRestClient client;
+    public EmotionServiceRestClient emotionClient;
     public FaceServiceRestClient faceClient;
+    public VisionServiceRestClient visionClient;
 
 
     @Override
@@ -62,12 +61,14 @@ public final class FaceTrackerActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
 
-        if (client == null) {
-           client = new EmotionServiceRestClient(getString(R.string.emotion_subscription_key));
+        if (emotionClient == null) {
+           emotionClient = new EmotionServiceRestClient(getString(R.string.emotion_subscription_key));
         }
-
         if(faceClient == null){
             faceClient = new FaceServiceRestClient(getString(R.string.face_subscription_key));
+        }
+        if (visionClient == null){
+            visionClient = new VisionServiceRestClient(getString(R.string.face_subscription_key));
         }
 
         mPreview = (CameraSourcePreview) findViewById(R.id.preview);
@@ -125,31 +126,18 @@ public final class FaceTrackerActivity extends AppCompatActivity {
 
         // Face Detector for face detection and processing
         FaceDetector faceDetector = new FaceDetector.Builder(context)
-                .setClassificationType(FaceDetector.ALL_CLASSIFICATIONS)
-                .setLandmarkType (FaceDetector.ALL_LANDMARKS)
                 .setMode(FaceDetector.ACCURATE_MODE)
                 .build();
 
-        //face detector for emotion detection
-        FaceDetector faceDetector1 = new FaceDetector.Builder(context).build();
-
-        // facedetector1 is wrapped with emotion detector
-        EmotionDetector emotionDetector = new EmotionDetector(faceDetector1,resultTextView,client,faceClient);
+        // faceDetector is wrapped with feature detector
+        FeatureDetector featureDetector = new FeatureDetector(faceDetector,resultTextView,
+                                                emotionClient,faceClient,visionClient);
 
         //Setting processors for the two detectors
-        faceDetector.setProcessor(new MultiProcessor.Builder<>(new GraphicFaceTrackerFactory())
+        featureDetector.setProcessor(new MultiProcessor.Builder<>(new GraphicFaceTrackerFactory())
                 .build());
 
-        emotionDetector.setProcessor(new LargestFaceFocusingProcessor.Builder(faceDetector1,new FaceTracker())
-                .build());
-
-        //multi detector for both face and emotion detectors
-        MultiDetector multiDetector = new MultiDetector.Builder()
-                .add(faceDetector)
-                .add(emotionDetector)
-                .build();
-
-        if (!multiDetector.isOperational()) {
+        if (!faceDetector.isOperational()) {
             Log.w(TAG, "Face detector dependencies are not yet available.");
         }
 
@@ -158,7 +146,7 @@ public final class FaceTrackerActivity extends AppCompatActivity {
             facing = CameraSource.CAMERA_FACING_BACK;
         }
 
-        mCameraSource = new CameraSource.Builder(context, multiDetector)
+        mCameraSource = new CameraSource.Builder(context, featureDetector)
                 .setRequestedPreviewSize(640,480)
                 .setFacing(facing)
                 .setRequestedFps(30f)
@@ -226,7 +214,6 @@ public final class FaceTrackerActivity extends AppCompatActivity {
         savedInstanceState.putBoolean("IsFrontFacing", mIsFrontFacing);
     }
 
-
     /**
      * Toggles between front-facing and rear-facing modes.
      */
@@ -259,9 +246,7 @@ public final class FaceTrackerActivity extends AppCompatActivity {
         }
     };
 
-
     private void startCameraSource() {
-
         // check that the device has play services available.
         int code = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(
                 getApplicationContext());
@@ -329,18 +314,6 @@ public final class FaceTrackerActivity extends AppCompatActivity {
         @Override
         public void onDone() {
             mOverlay.remove(mFaceGraphic);
-        }
-    }
-
-    // new Face Tracker to the processor of emotion detector.
-    class FaceTracker extends Tracker<Face> {
-        public void onNewItem(int id, Face face) {
-        }
-
-        public void onUpdate(Detector.Detections<Face> detections, Face face) {
-        }
-
-        public void onDone() {
         }
     }
 }

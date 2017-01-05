@@ -14,18 +14,18 @@ import android.widget.TextView;
 import com.google.android.gms.vision.Detector;
 import com.google.android.gms.vision.Frame;
 import com.google.android.gms.vision.face.Face;
-import com.google.gson.Gson;
 import com.microsoft.projectoxford.emotion.EmotionServiceRestClient;
 import com.microsoft.projectoxford.emotion.contract.RecognizeResult;
-import com.microsoft.projectoxford.emotion.rest.EmotionServiceException;
 import com.microsoft.projectoxford.face.FaceServiceClient;
 import com.microsoft.projectoxford.face.FaceServiceRestClient;
+import com.microsoft.projectoxford.vision.VisionServiceRestClient;
+import com.microsoft.projectoxford.vision.contract.AnalysisResult;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static java.lang.System.currentTimeMillis;
@@ -34,32 +34,37 @@ import static java.lang.System.currentTimeMillis;
 /**
  * Created by dumindut on 4/10/2016.
  */
-public class EmotionDetector extends Detector<Face> {
+public class FeatureDetector extends Detector<Face> {
     private Detector<Face> mDelegate;
     public TextView resultTextView;
     private EmotionServiceRestClient emotionClient;
     private FaceServiceRestClient faceClient;
-    private Frame theFrame;
+    private VisionServiceRestClient visionClient;
+    private byte[] outputArray;
     private long lastTime;
     private static final float X_DIF_THRESHOLD = 10.0f;
     private static final float Y_DIF_THRESHOLD = 40.0f;
     private int count = 0;
+    private static final String[] tags = {"colored","dog","animal","stiffed","bear","teddy","toy",
+            "colorful","decorated","plastic","sign"};
+    private static final ArrayList<String> taglist = new ArrayList<String>(Arrays.asList(tags));
 
-    EmotionDetector(Detector<Face> delegate, TextView textView, EmotionServiceRestClient client1,
-                                        FaceServiceRestClient client2) {
+    FeatureDetector(Detector<Face> delegate, TextView textView, EmotionServiceRestClient client1,
+                    FaceServiceRestClient client2, VisionServiceRestClient client3) {
         mDelegate = delegate;
         resultTextView = textView;
         emotionClient = client1;
         faceClient = client2;
+        visionClient = client3;
         lastTime = currentTimeMillis();
     }
 
     @Override
     public SparseArray<Face> detect(Frame frame) {
         // *** Custom frame processing code
-        theFrame = frame;
         if(currentTimeMillis()-lastTime > 3000 && Data.isIdentified){
-            if(count == 3){
+            outputArray = getByteArray(frame);
+            if(count == 1){
                 doDifferentiate();;
                 count = 0;
             }
@@ -68,8 +73,10 @@ public class EmotionDetector extends Detector<Face> {
             lastTime = currentTimeMillis();
             count++;
         }
-        if(currentTimeMillis()-lastTime > 3000 && !Data.isIdentified){
+        if(currentTimeMillis()-lastTime > 2000 && !Data.isIdentified){
+            outputArray = getByteArray(frame);
             doDifferentiate();
+            lastTime = currentTimeMillis();
         }
         return mDelegate.detect(frame);
     }
@@ -83,48 +90,45 @@ public class EmotionDetector extends Detector<Face> {
     }
 
     public void doDifferentiate(){
-        ByteBuffer byteBuffer = theFrame.getGrayscaleImageData();
-        int width = theFrame.getMetadata().getWidth();
-        int height = theFrame.getMetadata().getHeight();
-        YuvImage yuvimage = new YuvImage(byteBuffer.array(), ImageFormat.NV21, width, height, null);
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
-        yuvimage.compressToJpeg(new Rect(0, 0, width, height), 100, output);
-        byte[] outputArray = output.toByteArray();
-
-        //If portrait, changing the outputArray
-        if (theFrame.getMetadata().getRotation() ==3){
-            Bitmap bmp = BitmapFactory.decodeByteArray(outputArray, 0, outputArray.length);
-            Bitmap rotatedBmp = rotateImage(bmp);
-            ByteArrayOutputStream output2 = new ByteArrayOutputStream();
-            rotatedBmp.compress(Bitmap.CompressFormat.JPEG, 100, output2);
-            outputArray = output2.toByteArray();
+        try{
+            new ageDetectionTask().execute();
+        }
+        catch(Exception e){
+            resultTextView.setText("Error encountered in age detection : " + e.toString());
+            Log.e("Age detection ",e.toString());
         }
 
-        ByteArrayInputStream inputStream = new ByteArrayInputStream(outputArray);
-        new ageDetectionTask().execute(inputStream);
     }
 
-    private class ageDetectionTask extends AsyncTask<InputStream, String, com.microsoft.projectoxford.face.contract.Face[]> {
-        private boolean mSucceed = true;
+    private class ageDetectionTask extends AsyncTask<String, String, com.microsoft.projectoxford.face.contract.Face[]> {
+        private Exception e = null;
+        public ageDetectionTask(){}
 
         @Override
-        protected com.microsoft.projectoxford.face.contract.Face[] doInBackground(InputStream... params) {
-            // Get an instance of face service client to detect faces in image.
-            FaceServiceClient faceServiceClient = faceClient;
+        protected com.microsoft.projectoxford.face.contract.Face[] doInBackground(String...args) {
             try {
-                return faceServiceClient.detect(params[0], false, false,
-                                    new FaceServiceClient.FaceAttributeType[] {
-                                                FaceServiceClient.FaceAttributeType.Age,});
+                ByteArrayInputStream inputStream = new ByteArrayInputStream(outputArray);
+                return faceClient.detect(inputStream, false, false,
+                        new FaceServiceClient.FaceAttributeType[] {
+                                FaceServiceClient.FaceAttributeType.Age,});
             } catch (Exception e) {
-                mSucceed = false;
-                Log.e("Age Detection",e.getMessage());
-                return null;
+                this.e = e;
             }
+            return null;
         }
 
         @Override
         protected void onPostExecute(com.microsoft.projectoxford.face.contract.Face[] result) {
-            if (mSucceed && result.length==2) {
+            if (e != null) {
+                resultTextView.setText("Error, age detection: " + e.getMessage());
+                Log.e("Age detection", e.getMessage());
+                this.e = null;
+            }
+            else if (result.length!=2) {
+                resultTextView.setText("Could not find two faces for age detection:(");
+                Log.e("Age detection", "Could not find two faces");
+            }
+            else {
                 double x1 = result[0].faceRectangle.left + result[0].faceRectangle.width/2;
                 double x2 = result[1].faceRectangle.left + result[1].faceRectangle.width/2;
                 double y1 = result[0].faceRectangle.top + result[0].faceRectangle.height/2;
@@ -157,34 +161,31 @@ public class EmotionDetector extends Detector<Face> {
                     Data.Child.faceHeight = height1;
                 }
                 Data.isIdentified=true;
-                lastTime = currentTimeMillis();
             }
         }
     }
 
-
-
     public void doRecognizeEmotions() {
         // Do emotion detection using auto-detected faces.
         try {
-            new doRequestEmotions().execute();
-        } catch (Exception e) {
-            resultTextView.setText("Error encountered. Exception is: " + e.toString());
+            new emotionDetectionTask().execute();
+        }
+        catch (Exception e) {
+            resultTextView.setText("Error encountered in emotion detection : " + e.toString());
+            Log.e("Emotion detection ",e.toString());
         }
     }
 
-
-    private class doRequestEmotions extends AsyncTask<String, String, List<RecognizeResult>> {
-        // Store error message
+    private class emotionDetectionTask extends AsyncTask<String, String, List<RecognizeResult>> {
         private Exception e = null;
-
-        public doRequestEmotions() {
-        }
+        public emotionDetectionTask() {}
 
         @Override
         protected List<RecognizeResult> doInBackground(String... args) {
             try {
-                return processWithAutoFaceDetection();
+                ByteArrayInputStream inputStream = new ByteArrayInputStream(outputArray);
+                List<RecognizeResult> result = emotionClient.recognizeImage(inputStream);
+                return result;
             } catch (Exception e) {
                 this.e = e;    // Store error
             }
@@ -196,12 +197,13 @@ public class EmotionDetector extends Detector<Face> {
             super.onPostExecute(result);
             // Display based on error existence
             if (e != null) {
-                resultTextView.setText("Error: " + e.getMessage());
-                //Log.e("error", e.getMessage());
+                resultTextView.setText("Error, emotion detection: " + e.getMessage());
+                Log.e("Emotion detection ", e.getMessage());
                 this.e = null;
             }
             else if (result.size() != 2) {
-                resultTextView.setText("Could not find two faces :(");
+                resultTextView.setText("Could not find two faces for emotion detection :(");
+                Log.e("Emotion detection ", " Could not find two faces'");
             }
             else {
                 for (RecognizeResult r : result) {
@@ -267,39 +269,6 @@ public class EmotionDetector extends Detector<Face> {
         }
     }
 
-    private List<RecognizeResult> processWithAutoFaceDetection() throws EmotionServiceException, IOException {
-        Gson gson = new Gson();
-
-        // Put the image into an input stream for detection.
-        ByteBuffer byteBuffer = theFrame.getGrayscaleImageData();
-        int width = theFrame.getMetadata().getWidth();
-        int height = theFrame.getMetadata().getHeight();
-        YuvImage yuvimage = new YuvImage(byteBuffer.array(), ImageFormat.NV21, width, height, null);
-
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
-        yuvimage.compressToJpeg(new Rect(0, 0, width, height), 100, output);
-
-        byte[] outputArray = output.toByteArray();
-
-        //If portrait, changing the outputArray
-        if (theFrame.getMetadata().getRotation() ==3){
-            Bitmap bmp = BitmapFactory.decodeByteArray(outputArray, 0, outputArray.length);
-            Bitmap rotatedBmp = rotateImage(bmp);
-            ByteArrayOutputStream output2 = new ByteArrayOutputStream();
-            rotatedBmp.compress(Bitmap.CompressFormat.JPEG, 100, output2);
-            outputArray = output2.toByteArray();
-        }
-
-        ByteArrayInputStream inputStream = new ByteArrayInputStream(outputArray);
-
-        List<RecognizeResult> result = null;
-        result = emotionClient.recognizeImage(inputStream);
-
-        String json = gson.toJson(result);
-
-        return result;
-    }
-
     //Method to rotate bitmap by 90degrees clockwise
     private Bitmap rotateImage(Bitmap bitmapSrc) {
         Matrix matrix = new Matrix();
@@ -308,19 +277,86 @@ public class EmotionDetector extends Detector<Face> {
                 bitmapSrc.getWidth(), bitmapSrc.getHeight(), matrix, true);
     }
 
-    //Method to check for Joint attention and eye contact
+    //Method to check for features other than emotions
     private void recognizeFeatures(){
+        Data.isParentLookingAtChild = false;
+        Data.isChildLookingAtParent = false;
         Data.hasEyeContact=false;
         Data.hasJointAttention = false;
 
-        //Checking for eye contact
+        double thetaThreshold1;   //to y-faceheight/4
+        double thetaThreshold2;     //to y+faceheight/4
+        double thetaThresholdHigh;
+        double thetaThresholdLow;
+        float globalTheta;
+
+        /////////////////////////////////////////////////////////////////////////////////////////
+        // Detecting whether parent looking at child
+        globalTheta = Data.Parent.globalTheta;
+        thetaThreshold1 = Math.atan2(Data.Child.y-Data.Child.faceHeight/4-Data.Parent.y, Data.Child.x-Data.Parent.x);
+        thetaThreshold2 = Math.atan2(Data.Child.y+Data.Child.faceHeight/4-Data.Parent.y, Data.Child.x-Data.Parent.x);
+        thetaThreshold1 = Math.toDegrees(thetaThreshold1);
+        thetaThreshold2 = Math.toDegrees(thetaThreshold2);
+
+        if(thetaThreshold1>thetaThreshold2){
+            thetaThresholdHigh = thetaThreshold1;
+            thetaThresholdLow = thetaThreshold2;
+        }
+        else{
+            thetaThresholdHigh = thetaThreshold2;
+            thetaThresholdLow = thetaThreshold1;
+        }
+        //if the two thresholds fall in first and fourth quadrants
+        if(thetaThresholdHigh>270 && thetaThresholdLow<90){
+            if(globalTheta>thetaThresholdHigh && globalTheta<thetaThresholdLow){
+                Data.isParentLookingAtChild=true;
+            }
+        }
+        //other cases
+        else{
+            if(globalTheta>thetaThresholdLow && globalTheta<thetaThresholdHigh){
+                Data.isParentLookingAtChild=true;
+            }
+        }
+
+        ///////////////////////////////////////////////////////////////////////////////////////////
+        // Checking whether child looking at parent
+        globalTheta = Data.Child.globalTheta;
+        thetaThreshold1 = Math.atan2(Data.Parent.y-Data.Parent.faceHeight/4-Data.Child.y, Data.Parent.x-Data.Child.x);
+        thetaThreshold2 = Math.atan2(Data.Parent.y+Data.Parent.faceHeight/4-Data.Child.y, Data.Parent.x-Data.Child.x);
+        thetaThreshold1 = Math.toDegrees(thetaThreshold1);
+        thetaThreshold2 = Math.toDegrees(thetaThreshold2);
+
+        if(thetaThreshold1>thetaThreshold2){
+            thetaThresholdHigh = thetaThreshold1;
+            thetaThresholdLow = thetaThreshold2;
+        }
+        else{
+            thetaThresholdHigh = thetaThreshold2;
+            thetaThresholdLow = thetaThreshold1;
+        }
+        //if the two thresholds fall in first and fourth quadrants
+        if(thetaThresholdHigh>270 && thetaThresholdLow<90){
+            if(globalTheta>thetaThresholdHigh && globalTheta<thetaThresholdLow){
+                Data.isParentLookingAtChild=true;
+            }
+        }
+        //other cases
+        else{
+            if(globalTheta>thetaThresholdLow && globalTheta<thetaThresholdHigh){
+                Data.isParentLookingAtChild=true;
+            }
+        }
+
+        //////////////////////////////////////////////////////////////////////////////////////////
+        // Checking for eye contact
         if(Data.isChildLookingAtParent && Data.isParentLookingAtChild){
             Data.hasEyeContact=true;
         }
 
-        //Checking for joint attention
+        /////////////////////////////////////////////////////////////////////////////////////////
+        // Checking for joint attention
         if(!Data.isChildLookingAtParent && !Data.isParentLookingAtChild){
-
             Data.meetX = 0;
             Data.meetY = 0;
             float x1 = Data.Parent.x;
@@ -339,10 +375,71 @@ public class EmotionDetector extends Detector<Face> {
 
                 if(meetX < Data.previewWidth-Data.Parent.faceWidth/2 && meetX > Data.Parent.faceWidth/2){
                     if(meetY < Data.previewHeight-Data.Parent.faceHeight/2 && meetY > Data.Parent.faceHeight/2){
-                        Data.hasJointAttention = true;      //Two rays meet within the camera preview.
+                        //Two rays meet within the camera preview.
                         Data.meetX = (float)meetX;
                         Data.meetY = (float)meetY;
+                        doDescribe();
+                    }
                 }
+            }
+        }
+    }
+
+    public void doDescribe() {
+        try {
+            new objectDetectionTask().execute();
+        }
+        catch (Exception e)
+        {
+            resultTextView.setText("Error encountered in object detection " + e.toString());
+            Log.e("Object detection ",e.toString());
+        }
+    }
+
+    private class objectDetectionTask extends AsyncTask<String, String, AnalysisResult> {
+        // Store error message
+        private Exception e = null;
+        public objectDetectionTask() {}
+
+        @Override
+        protected AnalysisResult doInBackground(String... args) {
+            try {
+                float crop_x = Data.meetX-Data.Parent.faceWidth/2;
+                float crop_y = Data.meetY-Data.Parent.faceHeight/2;
+
+                Bitmap fullBitmap = BitmapFactory.decodeByteArray(outputArray, 0, outputArray.length);
+                Bitmap croppedBitmap = Bitmap.createBitmap(fullBitmap, (int)crop_x, (int)crop_y,
+                        (int)Data.Parent.faceWidth, (int)Data.Parent.faceHeight);
+
+                ByteArrayOutputStream output = new ByteArrayOutputStream();
+                croppedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, output);
+                ByteArrayInputStream inputStream = new ByteArrayInputStream(output.toByteArray());
+
+                AnalysisResult result = visionClient.describe(inputStream, 1);
+                return  result;
+
+            } catch (Exception e) {
+                this.e = e;    // Store error
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(AnalysisResult result) {
+            super.onPostExecute(result);
+            // Display based on error existence
+
+            if (e != null) {
+                resultTextView.setText("Error, object detection: " + e.getMessage());
+                Log.e("Object detection ", e.getMessage());
+                this.e = null;
+            }
+            else {
+                for (String tag: result.description.tags) {
+                    if(taglist.contains(tag)){
+                        Data.hasJointAttention=true;
+                        break;
+                    }
                 }
             }
         }
@@ -362,5 +459,26 @@ public class EmotionDetector extends Detector<Face> {
 
         textView.setText(resultText);
         Log.d("  ", resultText);
+    }
+
+    public byte[] getByteArray(Frame frame){
+        int width = frame.getMetadata().getWidth();
+        int height = frame.getMetadata().getHeight();
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+
+        ByteBuffer byteBuffer = frame.getGrayscaleImageData();
+        YuvImage yuvimage = new YuvImage(byteBuffer.array(), ImageFormat.NV21, width, height, null);
+        yuvimage.compressToJpeg(new Rect(0, 0, width, height), 100, output);
+        byte[] outputArray = output.toByteArray();
+
+        //If portrait, changing the outputArray
+        if (frame.getMetadata().getRotation() ==3){
+            Bitmap bmp = BitmapFactory.decodeByteArray(outputArray, 0, outputArray.length);
+            Bitmap rotatedBmp = rotateImage(bmp);
+            ByteArrayOutputStream output2 = new ByteArrayOutputStream();
+            rotatedBmp.compress(Bitmap.CompressFormat.JPEG, 100, output2);
+            outputArray = output2.toByteArray();
+        }
+        return outputArray;
     }
 }

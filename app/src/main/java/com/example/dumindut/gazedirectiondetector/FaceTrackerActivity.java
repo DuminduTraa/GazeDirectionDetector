@@ -133,7 +133,7 @@ public final class FaceTrackerActivity extends AppCompatActivity {
         FeatureDetector featureDetector = new FeatureDetector(faceDetector,resultTextView,
                                                 emotionClient,faceClient,visionClient);
 
-        //Setting processors for the two detectors
+        //Setting processor for the detector
         featureDetector.setProcessor(new MultiProcessor.Builder<>(new GraphicFaceTrackerFactory())
                 .build());
 

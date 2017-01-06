@@ -45,7 +45,7 @@ public class FeatureDetector extends Detector<Face> {
     private static final float X_DIF_THRESHOLD = 10.0f;
     private static final float Y_DIF_THRESHOLD = 40.0f;
     private int count = 0;
-    private static final String[] tags = {"colored","dog","animal","stiffed","bear","teddy","toy",
+    private static final String[] tags = {"colored","dog","animal","stuffed","bear","teddy","toy",
             "colorful","decorated","plastic","sign"};
     private static final ArrayList<String> taglist = new ArrayList<String>(Arrays.asList(tags));
 
@@ -73,7 +73,7 @@ public class FeatureDetector extends Detector<Face> {
             lastTime = currentTimeMillis();
             count++;
         }
-        if(currentTimeMillis()-lastTime > 2000 && !Data.isIdentified){
+        if(currentTimeMillis()-lastTime > 3000 && !Data.isIdentified){
             outputArray = getByteArray(frame);
             doDifferentiate();
             lastTime = currentTimeMillis();
@@ -210,57 +210,23 @@ public class FeatureDetector extends Detector<Face> {
                     float x = r.faceRectangle.left + r.faceRectangle.width/2;
                     float y = r.faceRectangle.top + r.faceRectangle.height/2;
 
-                    String most = "";
-                    String secondMost = "";
-                    double mostValue = 0.;
-                    double secondMostValue = 0.;
-
-                    double[] valueList = new double[8];
-                    valueList[0] = r.scores.anger;
-                    valueList[1] = r.scores.contempt;
-                    valueList[2] = r.scores.disgust;
-                    valueList[3] = r.scores.fear;
-                    valueList[4] = r.scores.happiness;
-                    valueList[5] = r.scores.neutral;
-                    valueList[6] = r.scores.sadness;
-                    valueList[7] = r.scores.surprise;
-
-                    String[] emotions = new String[8];
-                    emotions[0] = "Anger";
-                    emotions[1] = "Contempt";
-                    emotions[2] = "Disgust";
-                    emotions[3] = "Fear";
-                    emotions[4] = "Happiness";
-                    emotions[5] = "Neutral";
-                    emotions[6] = "Sadness";
-                    emotions[7] = "Surprise";
-
-                    for (int i=0;i<8;i++){
-                        if(valueList[i] > mostValue){
-                            secondMostValue = mostValue;
-                            secondMost = most;
-                            mostValue = valueList[i];
-                            most = emotions[i];
-                        }
-                        else if(valueList[i] > secondMostValue){
-                            secondMostValue = valueList[i];
-                            secondMost = emotions[i];
-                        }
-                    }
+                    float[] valueList = new float[8];
+                    valueList[0] = (float)r.scores.anger;
+                    valueList[1] = (float)r.scores.contempt;
+                    valueList[2] = (float)r.scores.disgust;
+                    valueList[3] = (float)r.scores.fear;
+                    valueList[4] = (float)r.scores.happiness;
+                    valueList[5] = (float)r.scores.neutral;
+                    valueList[6] = (float)r.scores.sadness;
+                    valueList[7] = (float)r.scores.surprise;
 
                     if(Math.abs(x-Data.Parent.x)<X_DIF_THRESHOLD && Math.abs(y-Data.Parent.y)<Y_DIF_THRESHOLD){
                         //Parent
-                        Data.parentEmotion1 = most;
-                        Data.parentEmotion1Value = (float)mostValue;
-                        Data.parentEmotion2 = secondMost;
-                        Data.parentEmotion2Value = (float)secondMostValue;
+                        Data.parentEmotions = valueList;
                     }
                     else if(Math.abs(x-Data.Child.x)<X_DIF_THRESHOLD && Math.abs(y-Data.Child.y)<Y_DIF_THRESHOLD){
                         //Child
-                        Data.childEmotion1 = most;
-                        Data.childEmotion1Value = (float)mostValue;
-                        Data.childEmotion2 = secondMost;
-                        Data.childEmotion2Value = (float)secondMostValue;
+                        Data.childEmtions = valueList;
                     }
                     else{}
                 }
@@ -452,10 +418,6 @@ public class FeatureDetector extends Detector<Face> {
         resultText += "\nChild looking at parent : " + Data.isChildLookingAtParent;
         resultText += "\nEye Contact : " + Data.hasEyeContact;
         resultText += "\nJoint Attention : " + Data. hasJointAttention;
-        resultText += "\nParent's emotions : " + Data.parentEmotion1 + ":" + Data.parentEmotion1Value
-                + "    " + Data.parentEmotion2 + ":" + Data. parentEmotion2Value;
-        resultText += "\nChild's emotions : " + Data.childEmotion1 + ":" + Data.childEmotion1Value
-                + "    " + Data.childEmotion2 + ":" + Data.childEmotion2Value;
 
         textView.setText(resultText);
         Log.d("  ", resultText);

@@ -17,15 +17,6 @@ public class Data {
 
     public static boolean isIdentified = false;
 
-    //Variables for the features
-    public static boolean isParentLookingAtChild = false;
-    public static boolean isChildLookingAtParent = false;
-    public static boolean hasEyeContact = false;
-    public static boolean hasJointAttention = false;
-    public static float[] parentEmotions = new float[8];
-    public static float[] childEmtions = new float[8];
-
-
     static void clearData(){
         isIdentified = false;
     }

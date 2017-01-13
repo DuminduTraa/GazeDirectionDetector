@@ -60,7 +60,7 @@ public class FeatureDetector extends Detector<Face> {
     private static final float HAPPINESS_WEIGHT = 2.0f;
     private static final float NEUTRAL_WEIGHT = 0.0f;
     private static final float SADNESS_WEIGHT = -2.0f;
-    private static final float SURPRISE_WEIGHT = -1.0f;
+    private static final float SURPRISE_WEIGHT = 1.0f;
 
     private boolean isParentLookingAtChild = false;
     private boolean isChildLookingAtParent = false;

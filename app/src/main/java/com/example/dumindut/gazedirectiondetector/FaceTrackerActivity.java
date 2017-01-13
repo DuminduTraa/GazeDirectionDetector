@@ -44,6 +44,7 @@ public final class FaceTrackerActivity extends AppCompatActivity {
     private CameraSourcePreview mPreview;
     private GraphicOverlay mGraphicOverlay;
     private TextView resultTextView;
+    private TextView feedbackTextView;
 
     private static final int RC_HANDLE_GMS = 9001;
     // permission request codes need to be < 256
@@ -74,6 +75,7 @@ public final class FaceTrackerActivity extends AppCompatActivity {
         mPreview = (CameraSourcePreview) findViewById(R.id.preview);
         mGraphicOverlay = (GraphicOverlay) findViewById(R.id.faceOverlay);
         resultTextView = (TextView) findViewById(R.id.result_text_view);
+        feedbackTextView = (TextView) findViewById(R.id.feedback_text_View);
 
         final Button flipButton = (Button) findViewById(R.id.flipButton);
         final Button resetButton = (Button) findViewById(R.id.resetButton);
@@ -130,10 +132,10 @@ public final class FaceTrackerActivity extends AppCompatActivity {
                 .build();
 
         // faceDetector is wrapped with feature detector
-        FeatureDetector featureDetector = new FeatureDetector(faceDetector,resultTextView,
+        FeatureDetector featureDetector = new FeatureDetector(faceDetector,resultTextView,feedbackTextView,
                                                 emotionClient,faceClient,visionClient);
 
-        //Setting processors for the two detectors
+        //Setting processor for the detector
         featureDetector.setProcessor(new MultiProcessor.Builder<>(new GraphicFaceTrackerFactory())
                 .build());
 
@@ -227,6 +229,7 @@ public final class FaceTrackerActivity extends AppCompatActivity {
             }
             Data.clearData();
             resultTextView.setText("Results");
+            feedbackTextView.setText("Feedback");
             createCameraSource();
             startCameraSource();
         }
@@ -241,6 +244,7 @@ public final class FaceTrackerActivity extends AppCompatActivity {
             }
             Data.clearData();
             resultTextView.setText("Results");
+            feedbackTextView.setText("Feedback");
             createCameraSource();
             startCameraSource();
         }

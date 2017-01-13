@@ -168,10 +168,6 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                     globalTheta = 360 - theta;
                 }
 
-                stopX = x_canvas+dirLineLength*Math.cos(Math.toRadians(globalTheta));
-                stopY = y_canvas+dirLineLength*Math.sin(Math.toRadians(globalTheta));
-                canvas.drawLine(x_canvas,y_canvas,(float)stopX,(float)stopY,mFacePositionPaint);
-
                 //Assinging globalTheta to relevant person
                 if(name == Data.PARENT){Data.Parent.globalTheta = globalTheta;}
                 if(name == Data.CHILD){Data.Child.globalTheta = globalTheta;}

@@ -31,4 +31,6 @@ dependencies {
     compile 'com.google.code.gson:gson:2.5'
 
     compile 'com.microsoft.projectoxford:face:1.2.1'
+
+    compile 'org.apache.commons:commons-collections4:4.1'
 }

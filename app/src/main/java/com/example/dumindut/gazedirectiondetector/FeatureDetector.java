@@ -21,6 +21,8 @@ import com.microsoft.projectoxford.face.FaceServiceRestClient;
 import com.microsoft.projectoxford.vision.VisionServiceRestClient;
 import com.microsoft.projectoxford.vision.contract.AnalysisResult;
 
+import org.apache.commons.collections4.queue.CircularFifoQueue;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
@@ -35,17 +37,20 @@ import static java.lang.System.currentTimeMillis;
  * Created by dumindut on 4/10/2016.
  */
 public class FeatureDetector extends Detector<Face> {
+
     private Detector<Face> mDelegate;
-    public TextView resultTextView;
-    public TextView feedbackTextView;
+    private TextView resultTextView;
+    private TextView feedbackTextView;
     private EmotionServiceRestClient emotionClient;
     private FaceServiceRestClient faceClient;
     private VisionServiceRestClient visionClient;
     private byte[] outputArray;
     private long lastTime;
+    private int count = 1;
+    private boolean startFeedbacking = false;
+
     private static final float X_DIF_THRESHOLD = 10.0f;
     private static final float Y_DIF_THRESHOLD = 40.0f;
-    private int count = 1;
     private static final String[] tags = {"colored","dog","animal","stuffed","bear","teddy","toy",
             "colorful","decorated","plastic","sign"};
     private static final ArrayList<String> taglist = new ArrayList<String>(Arrays.asList(tags));
@@ -53,29 +58,19 @@ public class FeatureDetector extends Detector<Face> {
     private static final int AGE_DETECTION_FRAME_COUNT_THRESHOLD = 2;
     private static final int FEATURE_DETECTION_TIME_THRESHOLD = 3000;
 
-    private static final float ANGER_WEIGHT = -2.0f;
-    private static final float CONTEMPT_WEIGHT = -1.0f;
-    private static final float DISGUST_WEIGHT = -0.5f;
-    private static final float FEAR_WEIGHT = -2.0f;
-    private static final float HAPPINESS_WEIGHT = 2.0f;
-    private static final float NEUTRAL_WEIGHT = 0.0f;
-    private static final float SADNESS_WEIGHT = -2.0f;
-    private static final float SURPRISE_WEIGHT = 1.0f;
-
     private boolean isParentLookingAtChild = false;
     private boolean isChildLookingAtParent = false;
     private boolean hasEyeContact = false;
     private boolean hasJointAttention = false;
-    private float parentEmotionScore = 0.0f;
-    private float childEmotionScore = 0.0f;
+    private float[] parentEmotionVec = new float[8];
+    private float[] childEmotionVec = new float[8];
 
-    private int parentLookingAtChildCount = 0;
-    private int childLookingAtParentCount = 0;
-    private int eyeContactCount = 0;
-    private int jointAttentionCount = 0;
-    private float cumParentEmotionScore = 0;
-    private float cumChildEmotionScore = 0;
-
+    CircularFifoQueue<Integer> parentLookingAtChildBuffer = new CircularFifoQueue<Integer>(FEEDBACK_FRAME_COUNT_THRESHOLD*2);
+    CircularFifoQueue<Integer> childLookingAtParentBuffer = new CircularFifoQueue<Integer>(FEEDBACK_FRAME_COUNT_THRESHOLD*2);
+    CircularFifoQueue<Integer> eyeContactBuffer = new CircularFifoQueue<Integer>(FEEDBACK_FRAME_COUNT_THRESHOLD*2);
+    CircularFifoQueue<Integer> jointAttentiontBuffer = new CircularFifoQueue<Integer>(FEEDBACK_FRAME_COUNT_THRESHOLD*2);
+    private float[] cumParentEmotionVec = {0,0,0,0,0,0,0,0};
+    private float[] cumChildEmotionVec = {0,0,0,0,0,0,0,0};
 
     FeatureDetector(Detector<Face> delegate, TextView textView, TextView textView2, EmotionServiceRestClient client1,
                     FaceServiceRestClient client2, VisionServiceRestClient client3) {
@@ -99,7 +94,12 @@ public class FeatureDetector extends Detector<Face> {
             }
             recognizeFeatures();
             doRecognizeEmotions();
-            if(count%FEEDBACK_FRAME_COUNT_THRESHOLD == 0){
+            if(count%(2*FEEDBACK_FRAME_COUNT_THRESHOLD)==0 && !startFeedbacking){
+                doFeedback();
+                startFeedbacking = true;
+                count = 0;
+            }
+            if(count%FEEDBACK_FRAME_COUNT_THRESHOLD == 0 && startFeedbacking){
                 doFeedback();
                 count = 0;
             }
@@ -198,8 +198,6 @@ public class FeatureDetector extends Detector<Face> {
 
     public void doRecognizeEmotions() {
         // Do emotion detection using auto-detected faces.
-        parentEmotionScore = 0.0f;
-        childEmotionScore = 0.0f;
         try {
             new emotionDetectionTask().execute();
         }
@@ -243,25 +241,31 @@ public class FeatureDetector extends Detector<Face> {
                     float x = r.faceRectangle.left + r.faceRectangle.width/2;
                     float y = r.faceRectangle.top + r.faceRectangle.height/2;
 
-                    double emotionScore = 0.0;
-                    emotionScore += r.scores.anger*ANGER_WEIGHT;
-                    emotionScore += r.scores.contempt*CONTEMPT_WEIGHT;
-                    emotionScore += r.scores.disgust*DISGUST_WEIGHT;
-                    emotionScore += r.scores.fear*FEAR_WEIGHT;
-                    emotionScore += r.scores.happiness*HAPPINESS_WEIGHT;
-                    emotionScore += r.scores.neutral*NEUTRAL_WEIGHT;
-                    emotionScore += r.scores.sadness*SADNESS_WEIGHT;
-                    emotionScore += r.scores.surprise*SURPRISE_WEIGHT;
+                    float[] emotionVec = new float[8];
+                    emotionVec[0] = (float)r.scores.anger;
+                    emotionVec[1] = (float)r.scores.contempt;
+                    emotionVec[2] = (float)r.scores.disgust;
+                    emotionVec[3] = (float)r.scores.fear;
+                    emotionVec[4] = (float)r.scores.happiness;
+                    emotionVec[5] = (float)r.scores.neutral;
+                    emotionVec[6] = (float)r.scores.sadness;
+                    emotionVec[7] = (float)r.scores.surprise;
 
                     if(Math.abs(x-Data.Parent.x)<X_DIF_THRESHOLD && Math.abs(y-Data.Parent.y)<Y_DIF_THRESHOLD){
                         //Parent
-                        parentEmotionScore = (float)emotionScore;
-                        cumParentEmotionScore += parentEmotionScore;
+                        parentEmotionVec = emotionVec;
+                        for(int i=0; i<8; i++){
+                            float temp = cumParentEmotionVec[i];
+                            cumParentEmotionVec[i] = emotionVec[i] + temp;
+                        }
                     }
                     else if(Math.abs(x-Data.Child.x)<X_DIF_THRESHOLD && Math.abs(y-Data.Child.y)<Y_DIF_THRESHOLD){
                         //Child
-                       childEmotionScore = (float)emotionScore;
-                        cumChildEmotionScore += childEmotionScore;
+                        childEmotionVec = emotionVec;
+                        for(int i=0; i<8; i++){
+                            float temp = cumChildEmotionVec[i];
+                            cumChildEmotionVec[i] = emotionVec[i] + temp;
+                        }
                     }
                     else{}
                 }
@@ -311,16 +315,17 @@ public class FeatureDetector extends Detector<Face> {
         if(thetaThresholdHigh>270 && thetaThresholdLow<90){
             if(globalTheta>thetaThresholdHigh && globalTheta<thetaThresholdLow){
                 isParentLookingAtChild = true;
-                parentLookingAtChildCount++;
             }
         }
         //other cases
         else{
             if(globalTheta>thetaThresholdLow && globalTheta<thetaThresholdHigh){
                 isParentLookingAtChild = true;
-                parentLookingAtChildCount++;
             }
         }
+        //Updating the buffer
+        if(isParentLookingAtChild){parentLookingAtChildBuffer.add(1);}
+        else{parentLookingAtChildBuffer.add(0);}
 
         ///////////////////////////////////////////////////////////////////////////////////////////
         // Checking whether child looking at parent
@@ -342,23 +347,25 @@ public class FeatureDetector extends Detector<Face> {
         if(thetaThresholdHigh>270 && thetaThresholdLow<90){
             if(globalTheta>thetaThresholdHigh && globalTheta<thetaThresholdLow){
                 isChildLookingAtParent = true;
-                childLookingAtParentCount++;
             }
         }
         //other cases
         else{
             if(globalTheta>thetaThresholdLow && globalTheta<thetaThresholdHigh){
                 isChildLookingAtParent = true;
-                childLookingAtParentCount++;
             }
         }
+        //Updating the buffer
+        if(isChildLookingAtParent){childLookingAtParentBuffer.add(1);}
+        else{childLookingAtParentBuffer.add(0);}
 
         //////////////////////////////////////////////////////////////////////////////////////////
         // Checking for eye contact
         if(isChildLookingAtParent && isParentLookingAtChild){
             hasEyeContact = true;
-            eyeContactCount++;
+            eyeContactBuffer.add(1);
         }
+        else{eyeContactBuffer.add(0);}
 
         /////////////////////////////////////////////////////////////////////////////////////////
         // Checking for joint attention
@@ -386,9 +393,13 @@ public class FeatureDetector extends Detector<Face> {
                         Data.meetY = (float)meetY;
                         doDescribe();
                     }
+                    else{jointAttentiontBuffer.add(0);}
                 }
+                else{jointAttentiontBuffer.add(0);}
             }
+            else{jointAttentiontBuffer.add(0);}
         }
+        else{jointAttentiontBuffer.add(0);}
     }
 
     public void doDescribe() {
@@ -399,6 +410,7 @@ public class FeatureDetector extends Detector<Face> {
         {
             resultTextView.setText("Error encountered in object detection " + e.toString());
             Log.e("Object detection ",e.toString());
+            jointAttentiontBuffer.add(0);
         }
     }
 
@@ -436,20 +448,23 @@ public class FeatureDetector extends Detector<Face> {
         protected void onPostExecute(AnalysisResult result) {
             super.onPostExecute(result);
             // Display based on error existence
-
             if (e != null) {
                 resultTextView.setText("Error, object detection: " + e.getMessage());
                 Log.e("Object detection ", e.getMessage());
+                jointAttentiontBuffer.add(0);
                 this.e = null;
             }
             else {
                 for (String tag: result.description.tags) {
                     if(taglist.contains(tag)){
                         hasJointAttention = true;
-                        jointAttentionCount++;
+                        jointAttentiontBuffer.add(1);
                         break;
                     }
                 }
+            }
+            if(!hasJointAttention){
+                jointAttentiontBuffer.add(0);
             }
         }
     }
@@ -457,18 +472,18 @@ public class FeatureDetector extends Detector<Face> {
     public void showResults(TextView textView){
         String resultText = "\n";
 
-        resultText += "Parent looking at child : " + isParentLookingAtChild + "    Cumulative fig : " + parentLookingAtChildCount;
-        resultText += "\nChild looking at parent : " + isChildLookingAtParent + "   Cumulative fig : " + childLookingAtParentCount;
-        resultText += "\nEye Contact : " + hasEyeContact + "    Cumulative fig : " + eyeContactCount;
-        resultText += "\nJoint Attention : " + hasJointAttention + "    Cumulative fig : " + jointAttentionCount;
-        resultText += "\nParent Emotion Score : " + parentEmotionScore + "    Cumulative fig : " + cumParentEmotionScore;
-        resultText += "\nChild Emotion Score : " + childEmotionScore + "    Cumulative fig : " + cumChildEmotionScore;
+        resultText += "Parent looking at child : " + isParentLookingAtChild;
+        resultText += "\nChild looking at parent : " + isChildLookingAtParent;
+        resultText += "\nEye Contact : " + hasEyeContact;
+        resultText += "\nJoint Attention : " + hasJointAttention;
+        resultText += "\nParent Emotion Vec : " + Arrays.toString(parentEmotionVec);
+        resultText += "\nChild Emotion Vec : " + Arrays.toString(childEmotionVec);
 
         textView.setText(resultText);
         Log.d("  ", resultText);
     }
 
-    public byte[] getByteArray(Frame frame){
+    private byte[] getByteArray(Frame frame){
         int width = frame.getMetadata().getWidth();
         int height = frame.getMetadata().getHeight();
         ByteArrayOutputStream output = new ByteArrayOutputStream();
@@ -496,14 +511,24 @@ public class FeatureDetector extends Detector<Face> {
     private class feedbackingTask extends AsyncTask<String, String, float[]>{
         @Override
         protected float[] doInBackground(String... args){
-            float[] results = new float[6];
-            float divider = (float)FEEDBACK_FRAME_COUNT_THRESHOLD;
-            results[0] = parentLookingAtChildCount*100/divider;
-            results[1] = childLookingAtParentCount*100/divider;
-            results[2] = eyeContactCount*100/divider;
-            results[3] = jointAttentionCount*100/divider;
-            results[4] = cumParentEmotionScore/divider;
-            results[5] = cumChildEmotionScore/divider;
+            float[] results = new float[4];
+            int timesParentLookedAtChild = 0;
+            int timesChildLookedAtParent = 0;
+            int timesOfEyeContact = 0;
+            int timesOfJointAttention = 0;
+            float divider = (float)FEEDBACK_FRAME_COUNT_THRESHOLD*2;
+
+            for(int i=0; i<FEEDBACK_FRAME_COUNT_THRESHOLD*2; i++){
+                timesParentLookedAtChild += parentLookingAtChildBuffer.get(i);
+                timesChildLookedAtParent += childLookingAtParentBuffer.get(i);
+                timesOfEyeContact += eyeContactBuffer.get(i);
+                timesOfJointAttention += jointAttentiontBuffer.get(i);
+            }
+
+            results[0] = timesParentLookedAtChild*100/divider;
+            results[1] = timesChildLookedAtParent*100/divider;
+            results[2] = timesOfEyeContact*100/divider;
+            results[3] = timesOfJointAttention*100/divider;
 
             return results;
         }
@@ -512,28 +537,24 @@ public class FeatureDetector extends Detector<Face> {
         protected void onPostExecute(float[] result){
             super.onPostExecute(result);
 
+            float[] avgParentEmotionVec = new float[8];
+            float[] avgChildEmotionVec = new float[8];
+            for(int i=0; i<8; i++){
+                avgChildEmotionVec[i] = cumChildEmotionVec[i]/(2*FEEDBACK_FRAME_COUNT_THRESHOLD);
+                avgParentEmotionVec[i] = cumParentEmotionVec[i]/(2*FEEDBACK_FRAME_COUNT_THRESHOLD);
+            }
+
             String resultText = "\n";
 
             resultText += "Time proportion parent spent looking at child : " + result[0];
             resultText += "\nTime proportion child spent looking at parent : " + result[1] ;
             resultText += "\nTime proportion on eye Contact : " + result[2] ;
             resultText += "\nTime proportion spent on joint Attention : " + result[3];
-            resultText += "\nAverage Parent Emotion Score : " + result[4];
-            resultText += "\nAverage child Emotion Score : " + result[5];
+            resultText += "\nAverage Parent Emotion Vec : " + Arrays.toString(avgParentEmotionVec);
+            resultText += "\nAverage child Emotion Vec : " + Arrays.toString(avgChildEmotionVec);
 
             feedbackTextView.setText(resultText);
             Log.d("FEEDBACK  : \n", resultText);
-
-            clearCumResults();
         }
-    }
-
-    public void clearCumResults(){
-        parentLookingAtChildCount = 0;
-        childLookingAtParentCount = 0;
-        eyeContactCount = 0;
-        jointAttentionCount = 0;
-        cumParentEmotionScore = 0.0f;
-        cumChildEmotionScore = 0.0f;
     }
 }

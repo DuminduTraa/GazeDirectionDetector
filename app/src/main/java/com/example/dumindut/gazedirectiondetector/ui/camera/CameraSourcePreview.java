@@ -1,8 +1,5 @@
 package com.example.dumindut.gazedirectiondetector.ui.camera;
 
-/**
- * Created by dumindut on 29/8/2016.
- */
 import android.content.Context;
 import android.content.res.Configuration;
 import android.util.AttributeSet;
@@ -16,6 +13,9 @@ import com.google.android.gms.vision.CameraSource;
 
 import java.io.IOException;
 
+/**
+ * Camera Source Preview to be shown in the UI and to impose overlays
+ */
 public class CameraSourcePreview extends ViewGroup {
     private static final String TAG = "CameraSourcePreview";
 

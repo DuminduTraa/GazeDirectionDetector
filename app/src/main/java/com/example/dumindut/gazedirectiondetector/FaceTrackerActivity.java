@@ -1,9 +1,5 @@
 package com.example.dumindut.gazedirectiondetector;
 
-/**
- * Created by dumindut on 29/8/2016.
- */
-
 import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -35,7 +31,9 @@ import com.microsoft.projectoxford.vision.VisionServiceRestClient;
 
 import java.io.IOException;
 
-
+/**
+ * Face Tracking activity. Currently the main activity in the app
+ */
 public final class FaceTrackerActivity extends AppCompatActivity {
     private static final String TAG = "FaceTracker";
 
@@ -56,12 +54,15 @@ public final class FaceTrackerActivity extends AppCompatActivity {
     public FaceServiceRestClient faceClient;
     public VisionServiceRestClient visionClient;
 
-
+    /**
+     * Initializes the UI and initiates the creation of a face detector
+     * Microsoft API clients are initiated in onCreate
+     */
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
-
+        //API calls
         if (emotionClient == null) {
            emotionClient = new EmotionServiceRestClient(getString(R.string.emotion_subscription_key));
         }
@@ -86,7 +87,6 @@ public final class FaceTrackerActivity extends AppCompatActivity {
             mIsFrontFacing = savedInstanceState.getBoolean("IsFrontFacing");
         }
 
-
         int rc = ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA);
         if (rc == PackageManager.PERMISSION_GRANTED) {
             createCameraSource();
@@ -95,6 +95,9 @@ public final class FaceTrackerActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Requesting camera permission. Manifest should include the camera permission
+     */
     private void requestCameraPermission() {
         Log.w(TAG, "Camera permission is not granted. Requesting permission");
 
@@ -122,6 +125,10 @@ public final class FaceTrackerActivity extends AppCompatActivity {
                 .show();
     }
 
+    /**
+     * Creating the camera source in conjunction with the multi processor and face detector of
+     * Google vision API
+     */
     private void createCameraSource() {
 
         Context context = getApplicationContext();
@@ -156,18 +163,28 @@ public final class FaceTrackerActivity extends AppCompatActivity {
                 .build();
     }
 
+    /**
+     * Restarts the camera.
+     */
      @Override
     protected void onResume() {
         super.onResume();
         startCameraSource();
      }
 
+    /**
+     * Stops the camera.
+     */
       @Override
     protected void onPause() {
         super.onPause();
         mPreview.stop();
     }
 
+    /**
+     * Releases the resources associated with the camera source, the associated detector, and the
+     * rest of the processing pipeline.
+     */
     @Override
     protected void onDestroy() {
         super.onDestroy();
@@ -176,6 +193,16 @@ public final class FaceTrackerActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Callback for the result from requesting permissions. This method
+     * is invoked for every call on {@link #requestPermissions(String[], int)}.
+     * @param requestCode  The request code passed in {@link #requestPermissions(String[], int)}.
+     * @param permissions  The requested permissions. Never null.
+     * @param grantResults The grant results for the corresponding permissions
+     *                     which is either {@link PackageManager#PERMISSION_GRANTED}
+     *                     or {@link PackageManager#PERMISSION_DENIED}. Never null.
+     * @see #requestPermissions(String[], int)
+     */
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         if (requestCode != RC_HANDLE_CAMERA_PERM) {
@@ -218,6 +245,7 @@ public final class FaceTrackerActivity extends AppCompatActivity {
 
     /**
      * Toggles between front-facing and rear-facing modes.
+     * Static variables in Data class are cleared.
      */
     private View.OnClickListener mFlipButtonListener = new View.OnClickListener() {
         public void onClick(View v) {
@@ -235,6 +263,9 @@ public final class FaceTrackerActivity extends AppCompatActivity {
         }
     };
 
+    /*
+    OnClick Listener for the reset button. the static variables in Data class are cleared.
+     */
     private View.OnClickListener mResetButtonListener = new View.OnClickListener() {
         @Override
         public void onClick(View view) {
@@ -250,6 +281,10 @@ public final class FaceTrackerActivity extends AppCompatActivity {
         }
     };
 
+    /**
+     * Starts or restarts the camera source, if it exists.  If the camera source doesn't exist yet
+     * this will be called again when the camera source is created.
+     */
     private void startCameraSource() {
         // check that the device has play services available.
         int code = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(

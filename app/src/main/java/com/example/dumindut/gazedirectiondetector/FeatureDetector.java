@@ -34,7 +34,10 @@ import static java.lang.System.currentTimeMillis;
 
 
 /**
- * Created by dumindut on 4/10/2016.
+ * Feature Detector class which is used to calculate all the features by providing custom
+ * frame processing on the google vision camera's preview frames. The feature Detector is
+ * wrapped around the main faceDetector and set the other resources(CameraSource and
+ * multiProcessor) setting a pipeline structure.
  */
 public class FeatureDetector extends Detector<Face> {
 
@@ -83,9 +86,17 @@ public class FeatureDetector extends Detector<Face> {
         lastTime = currentTimeMillis();
     }
 
+    /**
+     *All the feature detection happens here while the preview frame from google's camera source is
+     * accessed. Custom frame processing takes place at relevant time thresholds or simply returns
+     * the frame.
+     *
+     * @param frame Preview frame from google vision Camera Source. Format NV21
+     */
     @Override
     public SparseArray<Face> detect(Frame frame) {
         // *** Custom frame processing code
+        //Custom frame processing on the frame once per every 3 seconds approximately
         if(currentTimeMillis()-lastTime > FEATURE_DETECTION_TIME_THRESHOLD && Data.isIdentified){
             lastTime = currentTimeMillis();
             outputArray = getByteArray(frame);
@@ -94,6 +105,7 @@ public class FeatureDetector extends Detector<Face> {
             }
             recognizeFeatures();
             doRecognizeEmotions();
+            //flagging for feedback and start feedbacking with the 2 min buffer get filled.
             if(count%(2*FEEDBACK_FRAME_COUNT_THRESHOLD)==0 && !startFeedbacking){
                 doFeedback();
                 startFeedbacking = true;
@@ -105,6 +117,7 @@ public class FeatureDetector extends Detector<Face> {
             }
             count++;
         }
+        //Differentiating between parent and child using age detection for the first time
         if(currentTimeMillis()-lastTime > FEATURE_DETECTION_TIME_THRESHOLD && !Data.isIdentified){
             lastTime = currentTimeMillis();
             outputArray = getByteArray(frame);
@@ -121,6 +134,9 @@ public class FeatureDetector extends Detector<Face> {
         return mDelegate.setFocus(id);
     }
 
+    /**
+     * Calling age detection task to identify parent and child
+     */
     public void doDifferentiate(){
         try{
             new ageDetectionTask().execute();
@@ -131,10 +147,18 @@ public class FeatureDetector extends Detector<Face> {
         }
     }
 
+    /**
+     * Age detection tast using Microsoft Cognitive Services Face API.
+     */
     private class ageDetectionTask extends AsyncTask<String, String, com.microsoft.projectoxford.face.contract.Face[]> {
         private Exception e = null;
         public ageDetectionTask(){}
 
+        /**
+         * Async Task activity, calling the remote face client by sending frame data
+         * @param args
+         * @return Array including identified faces(objects) with their results
+         */
         @Override
         protected com.microsoft.projectoxford.face.contract.Face[] doInBackground(String...args) {
             try {
@@ -148,6 +172,12 @@ public class FeatureDetector extends Detector<Face> {
             return null;
         }
 
+        /**
+         * On succesfull completion of calling client and with the results produced by client
+         * starting the differentiating task and storing parent and child information on Data class
+         * to be shared with Google's vision face processing.
+         * @param result resulting array containing face information
+         */
         @Override
         protected void onPostExecute(com.microsoft.projectoxford.face.contract.Face[] result) {
             if (e != null) {
@@ -196,6 +226,9 @@ public class FeatureDetector extends Detector<Face> {
         }
     }
 
+    /**
+     * Executing emotion recognition task
+     */
     public void doRecognizeEmotions() {
         // Do emotion detection using auto-detected faces.
         try {
@@ -207,10 +240,19 @@ public class FeatureDetector extends Detector<Face> {
         }
     }
 
+    /**
+     * Emotion detection task using Microsoft Congitive Services Emotion API
+     */
     private class emotionDetectionTask extends AsyncTask<String, String, List<RecognizeResult>> {
         private Exception e = null;
         public emotionDetectionTask() {}
 
+        /**
+         * Calling the emotion client and sending the frame data.
+         * @param args
+         * @return results including emotions and their associated probability score on identified
+         * faces
+         */
         @Override
         protected List<RecognizeResult> doInBackground(String... args) {
             try {
@@ -223,6 +265,11 @@ public class FeatureDetector extends Detector<Face> {
             return null;
         }
 
+        /**
+         * On the completion of producing results with emotion client, storing emotion results
+         * of parent and child and adding to the cumulative vectors.
+         * @param result resulting list containing emotions and probability scores of each face.
+         */
         @Override
         protected void onPostExecute(List<RecognizeResult> result) {
             super.onPostExecute(result);
@@ -251,8 +298,9 @@ public class FeatureDetector extends Detector<Face> {
                     emotionVec[6] = (float)r.scores.sadness;
                     emotionVec[7] = (float)r.scores.surprise;
 
+                    //Checking whether the face corresponds to the parent or the child.
                     if(Math.abs(x-Data.Parent.x)<X_DIF_THRESHOLD && Math.abs(y-Data.Parent.y)<Y_DIF_THRESHOLD){
-                        //Parent
+                        //Assigning emotion details to parent
                         parentEmotionVec = emotionVec;
                         for(int i=0; i<8; i++){
                             float temp = cumParentEmotionVec[i];
@@ -260,7 +308,7 @@ public class FeatureDetector extends Detector<Face> {
                         }
                     }
                     else if(Math.abs(x-Data.Child.x)<X_DIF_THRESHOLD && Math.abs(y-Data.Child.y)<Y_DIF_THRESHOLD){
-                        //Child
+                        //Assinging emotion details to child
                         childEmotionVec = emotionVec;
                         for(int i=0; i<8; i++){
                             float temp = cumChildEmotionVec[i];
@@ -274,7 +322,11 @@ public class FeatureDetector extends Detector<Face> {
         }
     }
 
-    //Method to rotate bitmap by 90degrees clockwise
+    /**
+     * Rotating the bitmap if the device is orientated vertically
+     * @param bitmapSrc Existing bitmap(landscape preview)
+     * @return rotated bitmap
+     */
     private Bitmap rotateImage(Bitmap bitmapSrc) {
         Matrix matrix = new Matrix();
         matrix.postRotate(270);
@@ -282,7 +334,16 @@ public class FeatureDetector extends Detector<Face> {
                 bitmapSrc.getWidth(), bitmapSrc.getHeight(), matrix, true);
     }
 
-    //Method to check for features other than emotions
+
+    /**
+     * Recognizing features other than emotions
+     *      Whether parent looking at child
+     *      Whe ther child looking at parent
+     *      Whether they have eye contact
+     *      Whether they have joint attention on probably an object
+     * The current results are stored and also the buffer is added with current results
+     *
+     */
     private void recognizeFeatures(){
         isChildLookingAtParent = false;
         isParentLookingAtChild = false;
@@ -295,8 +356,12 @@ public class FeatureDetector extends Detector<Face> {
         double thetaThresholdLow;
         float globalTheta;
 
+
         /////////////////////////////////////////////////////////////////////////////////////////
         // Detecting whether parent looking at child
+
+        /*Assigning thresholds and checking whether the looking direction(globalTheta) falls in
+        * between the thresholds*/
         globalTheta = Data.Parent.globalTheta;
         thetaThreshold1 = Math.atan2(Data.Child.y-Data.Child.faceHeight/4-Data.Parent.y, Data.Child.x-Data.Parent.x);
         thetaThreshold2 = Math.atan2(Data.Child.y+Data.Child.faceHeight/4-Data.Parent.y, Data.Child.x-Data.Parent.x);
@@ -327,8 +392,12 @@ public class FeatureDetector extends Detector<Face> {
         if(isParentLookingAtChild){parentLookingAtChildBuffer.add(1);}
         else{parentLookingAtChildBuffer.add(0);}
 
+
         ///////////////////////////////////////////////////////////////////////////////////////////
         // Checking whether child looking at parent
+
+         /*Assigning thresholds and checking whether the looking direction(globalTheta) falls in
+        * between the thresholds*/
         globalTheta = Data.Child.globalTheta;
         thetaThreshold1 = Math.atan2(Data.Parent.y-Data.Parent.faceHeight/4-Data.Child.y, Data.Parent.x-Data.Child.x);
         thetaThreshold2 = Math.atan2(Data.Parent.y+Data.Parent.faceHeight/4-Data.Child.y, Data.Parent.x-Data.Child.x);
@@ -359,13 +428,15 @@ public class FeatureDetector extends Detector<Face> {
         if(isChildLookingAtParent){childLookingAtParentBuffer.add(1);}
         else{childLookingAtParentBuffer.add(0);}
 
+
         //////////////////////////////////////////////////////////////////////////////////////////
-        // Checking for eye contact
+        // Checking for eye contact (Simply taking the logical AND between the above two features)
         if(isChildLookingAtParent && isParentLookingAtChild){
             hasEyeContact = true;
             eyeContactBuffer.add(1);
         }
         else{eyeContactBuffer.add(0);}
+
 
         /////////////////////////////////////////////////////////////////////////////////////////
         // Checking for joint attention
@@ -379,6 +450,8 @@ public class FeatureDetector extends Detector<Face> {
             double theta1 = Math.toRadians(Data.Parent.globalTheta);
             double theta2 = Math.toRadians(Data.Child.globalTheta);
 
+            /*Mathematical calculation to detect whether the looking rays meet within the preview
+             * frame(padded with a face width/height) */
             double u = (y2 + (x1-x2)*Math.tan(theta2) - y1)/(Math.sin(theta1)-Math.cos(theta1)*Math.tan(theta2));
             double v = (x1 + u*Math.cos(theta1) - x2)/Math.cos(theta2);
 
@@ -391,6 +464,7 @@ public class FeatureDetector extends Detector<Face> {
                         //Two rays meet within the camera preview.
                         Data.meetX = (float)meetX;
                         Data.meetY = (float)meetY;
+                        //Describing the suspicious area with Microsoft Cognitive Services Object detection
                         doDescribe();
                     }
                     else{jointAttentiontBuffer.add(0);}
@@ -402,6 +476,9 @@ public class FeatureDetector extends Detector<Face> {
         else{jointAttentiontBuffer.add(0);}
     }
 
+    /**
+     * Executing object detection task in order to describe the image portion
+     */
     public void doDescribe() {
         try {
             new objectDetectionTask().execute();
@@ -414,11 +491,19 @@ public class FeatureDetector extends Detector<Face> {
         }
     }
 
+    /**
+     * Objest Detection task using Microsoft Cognitive Services Computer Vision API
+     */
     private class objectDetectionTask extends AsyncTask<String, String, AnalysisResult> {
         // Store error message
         private Exception e = null;
         public objectDetectionTask() {}
 
+        /**
+         * Calling the computer vision client and sending the frame data of the cropped area
+         * @param args
+         * @return results of object detection including caption, tags etc.
+         */
         @Override
         protected AnalysisResult doInBackground(String... args) {
             try {
@@ -435,7 +520,7 @@ public class FeatureDetector extends Detector<Face> {
                 croppedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, output);
                 ByteArrayInputStream inputStream = new ByteArrayInputStream(output.toByteArray());
 
-                AnalysisResult result = visionClient.describe(inputStream, 1);
+                AnalysisResult result = visionClient.describe(inputStream, 1);  //max candidates = 1
                 return  result;
 
             } catch (Exception e) {
@@ -444,6 +529,11 @@ public class FeatureDetector extends Detector<Face> {
             return null;
         }
 
+        /**
+         * On the completion of producing results with emotion client, checking the resulting tags
+         * to determine whether there is an object
+         * @param result Analyse result containing description of the image
+         */
         @Override
         protected void onPostExecute(AnalysisResult result) {
             super.onPostExecute(result);
@@ -455,6 +545,9 @@ public class FeatureDetector extends Detector<Face> {
                 this.e = null;
             }
             else {
+                //Checking the resulting tags wth the suspicious tag list
+                ///*********** this list needs to be added with more tags by testing object detction
+                //on test cases.
                 for (String tag: result.description.tags) {
                     if(taglist.contains(tag)){
                         hasJointAttention = true;
@@ -469,6 +562,10 @@ public class FeatureDetector extends Detector<Face> {
         }
     }
 
+    /**
+     * Showing current results in the results text view in UI
+     * @param textView result text view
+     */
     public void showResults(TextView textView){
         String resultText = "\n";
 
@@ -483,7 +580,14 @@ public class FeatureDetector extends Detector<Face> {
         Log.d("  ", resultText);
     }
 
-    private byte[] getByteArray(Frame frame){
+    /**
+     * Since all the microsoft api s need the preview frame to be converted to an byte array first,
+     * doing the conversion here at once without repeating again and again. This method is called
+     * at the beginning of frame processing
+     * @param frame
+     * @return
+     */
+    private byte[] getByteArray(Frame frame) {
         int width = frame.getMetadata().getWidth();
         int height = frame.getMetadata().getHeight();
         ByteArrayOutputStream output = new ByteArrayOutputStream();
@@ -494,7 +598,7 @@ public class FeatureDetector extends Detector<Face> {
         byte[] outputArray = output.toByteArray();
 
         //If portrait, changing the outputArray
-        if (frame.getMetadata().getRotation() ==3){
+        if (frame.getMetadata().getRotation() == 3) {
             Bitmap bmp = BitmapFactory.decodeByteArray(outputArray, 0, outputArray.length);
             Bitmap rotatedBmp = rotateImage(bmp);
             ByteArrayOutputStream output2 = new ByteArrayOutputStream();
@@ -504,10 +608,19 @@ public class FeatureDetector extends Detector<Face> {
         return outputArray;
     }
 
+
+    /**
+     * producing a feedback (currently only averaging results over the 2 min window) after first
+     * 2 minutes, the feedback is provided once in a minute(using past 2 min results in buffers)
+     */
     public void doFeedback(){
         new feedbackingTask().execute();
     }
 
+    /**
+     * AsyncTask to calculate average results, an asyncTask is used for the sake of the simplicity
+     * to use th UI thread(textView) to show feedback(results)
+     */
     private class feedbackingTask extends AsyncTask<String, String, float[]>{
         @Override
         protected float[] doInBackground(String... args){
@@ -533,6 +646,10 @@ public class FeatureDetector extends Detector<Face> {
             return results;
         }
 
+        /**
+         * Averaging emotions over 2 min(only each emotion) and showing final results in UI thread
+         * @param result
+         */
         @Override
         protected void onPostExecute(float[] result){
             super.onPostExecute(result);

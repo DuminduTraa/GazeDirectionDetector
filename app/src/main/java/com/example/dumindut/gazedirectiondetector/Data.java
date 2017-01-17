@@ -1,7 +1,8 @@
 package com.example.dumindut.gazedirectiondetector;
 
 /**
- * Created by dumindut on 15/11/2016.
+ * Data class is used to store parent and child information as static variables which will be shared
+ * by face Graphics within each other and face Graphics with Feature Detector.
  */
 public class Data {
 

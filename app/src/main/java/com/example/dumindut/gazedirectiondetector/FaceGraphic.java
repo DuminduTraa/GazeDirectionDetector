@@ -11,7 +11,8 @@ import android.graphics.Paint;
 import com.example.dumindut.gazedirectiondetector.ui.camera.GraphicOverlay;
 import com.google.android.gms.vision.face.Face;
 
-/*Graphic instance for rendering face position, orientation, and landmarks within an associated graphic overlay view.*/
+/*Graphic instance for rendering face position, orientation, and landmarks
+    within an associated graphic overlay view.*/
 class FaceGraphic extends GraphicOverlay.Graphic {
     private static final float FACE_POSITION_RADIUS = 5.0f;
     private static final float ID_TEXT_SIZE = 40.0f;
@@ -58,18 +59,24 @@ class FaceGraphic extends GraphicOverlay.Graphic {
         mBoxPaint.setStrokeWidth(BOX_STROKE_WIDTH);
 
         mIsFrontFacing = facing;
-
     }
 
     void setId(int id) {
         mFaceId = id;
     }
 
+    /**
+     * Updates the face instance from the detection of the most recent frame.  Invalidates the
+     * relevant portions of the overlay to trigger a redraw.
+     */
     void updateFace(Face face) {
         mFace = face;
         postInvalidate();
     }
 
+    /**
+     * Draws the face annotations for position on the supplied canvas.
+     */
     @Override
     public void draw(Canvas canvas) {
         Face face = mFace;
@@ -102,7 +109,11 @@ class FaceGraphic extends GraphicOverlay.Graphic {
 
         ///////////////////////////////////////////////////////////////////////////////////////////
         ///////////////////////////////////////////////////////////////////////////////////////////
-
+        /*
+        If parent and child has been identified by the age detection task, then deriving at their
+        looking directions using rotation details and storing in Data class. Also face tracking
+        is done using face ID s and respective positions of the faces.
+         */
         if(Data.isIdentified){  //Parent and Child defined
             boolean isSignificantFace = false;
 
@@ -142,12 +153,9 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                 float dirLineLength = Math.abs(eulerY)/60*1000;
                 boolean isThetaPositive;
                 boolean isLeft;
-                double stopX;
-                double stopY;
 
                 float globalTheta; // 0-360
 
-                //Drawing a looking direction line from the middle of the face. Using only rotation details
                 //All the details according to the person, not the camera.
                 if (eulerZ > 0) {isThetaPositive = false;}
                 else {isThetaPositive = true;}

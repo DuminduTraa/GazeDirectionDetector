@@ -151,33 +151,31 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                 float eulerZ = face.getEulerZ();
 
                 float theta = Math.abs(eulerZ); //0-60
-                float dirLineLength = Math.abs(eulerY)/60*1000;
-                boolean isThetaPositive;
-                boolean isLeft;
+                //float dirLineLength = Math.abs(eulerY)/60*1000;
 
                 float globalTheta; // 0-360
 
                 //All the details according to the person, not the camera.
-                if (eulerZ > 0) {isThetaPositive = false;}
-                else {isThetaPositive = true;}
-                if (eulerY > 0) {isLeft = false;}       // Left is person's left
-                else {isLeft = true;}
-
                 //Defining global theta(0-360) taking into consideration isThetaPositive and IsLeft
-                if(isThetaPositive && isLeft){ // Third Quadrant (180-270) range 180(0)-240(60)
-                    globalTheta = 180 + theta;
+                if(eulerZ<0){
+                    if(eulerY<0){
+                        globalTheta = 180 + theta; // Third Quadrant (180-270) range 180(0)-240(60)
+                    }
+                    else{
+                        globalTheta = theta; // First Quadrant (0-90) range 0(0)-60(60)
+                    }
                 }
-                else if(isThetaPositive && !isLeft){    // First Quadrant (0-90) range 0(0)-60(60)
-                    globalTheta = theta;
-                }
-                else if(!isThetaPositive && isLeft){   // Second Quadrant(90-180) range 120(60)-180(0)
-                    globalTheta =  180 - theta;
-                }
-                else{  //4th Quadrant (270-360)  range 300(60)-360(0)
-                    globalTheta = 360 - theta;
+                else{
+                    if(eulerY<0){
+                        globalTheta =  180 - theta;  // Second Quadrant(90-180) range 120(60)-180(0)
+                    }
+                    else{
+                        globalTheta = 360 - theta;  //4th Quadrant (270-360)  range 300(60)-360(0)
+                    }
                 }
 
-                //Assinging globalTheta to relevant person
+
+                //Assigning globalTheta to relevant person
                 if(name == Data.PARENT){Data.Parent.globalTheta = globalTheta;}
                 if(name == Data.CHILD){Data.Child.globalTheta = globalTheta;}
             }

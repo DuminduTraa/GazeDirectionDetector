@@ -19,6 +19,7 @@ class FaceGraphic extends GraphicOverlay.Graphic {
     private static final float ID_Y_OFFSET = 50.0f;
     private static final float ID_X_OFFSET = -50.0f;
     private static final float BOX_STROKE_WIDTH = 5.0f;
+    private static final int TIME_THRESHOLD_FOR_GLOBAL_THETA = 1000;
 
     private static final int COLOR_CHOICES[] = {
             Color.BLUE,
@@ -135,16 +136,16 @@ class FaceGraphic extends GraphicOverlay.Graphic {
 
             //If the face is a significant face(occurs in each 300 milliseconds)
             // Calculating features
-            if(name == Data.PARENT  && currentTime-Data.Parent.lastTime >= 300){
+            if(name == Data.PARENT  && currentTime-Data.Parent.lastTime >= TIME_THRESHOLD_FOR_GLOBAL_THETA){
                 isSignificantFace = true;
                 Data.Parent.lastTime = currentTime;
             }
-            else if(name == Data.CHILD  && currentTime-Data.Child.lastTime >= 300){
+            else if(name == Data.CHILD  && currentTime-Data.Child.lastTime >= TIME_THRESHOLD_FOR_GLOBAL_THETA){
                 isSignificantFace = true;
                 Data.Child.lastTime = currentTime;
             }
 
-            // Main face processing task happens once in each 300 milli seconds
+            // calculating looking direction happens once in each 1000 milli seconds
             if(isSignificantFace){
                 float eulerY = face.getEulerY();
                 float eulerZ = face.getEulerZ();

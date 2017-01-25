@@ -213,7 +213,7 @@ public final class FaceTrackerActivity extends AppCompatActivity {
 
         if (grantResults.length != 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
             Log.d(TAG, "Camera permission granted - initialize the camera source");
-            // we have permission, so create the camerasource
+            // we have permission, sno create the camerasource
             createCameraSource();
             return;
         }

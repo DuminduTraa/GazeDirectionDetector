@@ -93,7 +93,7 @@ class FaceGraphic extends GraphicOverlay.Graphic {
         float x_canvas = translateX(x);
         float y_canvas = scaleY(y);
 
-        String name;
+        String name = Data.UNKNOWN;
         long currentTime = System.currentTimeMillis();
 
         canvas.drawCircle(x_canvas, y_canvas, FACE_POSITION_RADIUS+5.0f, mFacePositionPaint);
@@ -118,24 +118,32 @@ class FaceGraphic extends GraphicOverlay.Graphic {
         if(Data.isIdentified){  //Parent and Child defined
             boolean isSignificantFace = false;
 
-            boolean couldBeParent = Math.abs(x-Data.Parent.x)<Data.Parent.faceWidth/2 &&
-                    Math.abs(y-Data.Parent.y)<Data.Parent.faceHeight/2;
-            boolean couldBeChild = Math.abs(x-Data.Child.x)<Data.Child.faceWidth/2 &&
-                    Math.abs(y-Data.Child.y)<Data.Child.faceHeight/2;
-
             //Updating parent, child basic information and keep tracking.
-            if(mFaceId == Data.Parent.id || couldBeParent){
+            if(mFaceId == Data.Parent.id){
                 name = Data.PARENT;
                 Data.updateParent(mFaceId,x,y,height,width);
             }
-            else if(mFaceId == Data.Child.id || couldBeChild) {
+            else if(mFaceId == Data.Child.id) {
                 name = Data.CHILD;
                 Data.updateChild(mFaceId,x,y,height,width);
             }
-            else{name = Data.UNKNOWN;}
+            else{
+                float sqrDistanceToParent = Math.abs(x-Data.Parent.x)*Math.abs(x-Data.Parent.x) +
+                        Math.abs(y-Data.Parent.y)*Math.abs(y-Data.Parent.y);
+                float sqrDistanceToChild = Math.abs(x-Data.Child.x)*Math.abs(x-Data.Child.x) +
+                        Math.abs(y-Data.Child.y)*Math.abs(y-Data.Child.y);
+                if(sqrDistanceToParent > sqrDistanceToChild){
+                    name = Data.PARENT;
+                    Data.updateParent(mFaceId,x,y,height,width);
+                }
+                else{
+                    name = Data.CHILD;
+                    Data.updateChild(mFaceId,x,y,height,width);
+                }
+            }
 
-            //If the face is a significant face(occurs in each 300 milliseconds)
-            // Calculating features
+            //If the face is a significant face(occurs in each 1000 milliseconds)
+            // Calculating rotation details
             if(name == Data.PARENT  && currentTime-Data.Parent.lastTime >= TIME_THRESHOLD_FOR_GLOBAL_THETA){
                 isSignificantFace = true;
                 Data.Parent.lastTime = currentTime;
@@ -179,9 +187,6 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                 if(name == Data.PARENT){Data.Parent.globalTheta = globalTheta;}
                 if(name == Data.CHILD){Data.Child.globalTheta = globalTheta;}
             }
-        }
-        else{
-            name = Data.UNKNOWN;
         }
         canvas.drawText(name, x_canvas + ID_X_OFFSET, y_canvas + ID_Y_OFFSET, mIdPaint);
     }

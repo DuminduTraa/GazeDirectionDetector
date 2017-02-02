@@ -97,32 +97,40 @@ public class FeatureDetector extends Detector<Face> {
     public SparseArray<Face> detect(Frame frame) {
         // *** Custom frame processing code
         //Custom frame processing on the frame once per every 3 seconds approximately
-        if(currentTimeMillis()-lastTime > FEATURE_DETECTION_TIME_THRESHOLD && Data.isIdentified){
-            lastTime = currentTimeMillis();
-            outputArray = getByteArray(frame);
-            if(count%AGE_DETECTION_FRAME_COUNT_THRESHOLD == 0){
+        if(currentTimeMillis()-lastTime > FEATURE_DETECTION_TIME_THRESHOLD){
+            if(Data.isIdentified){
+                lastTime = currentTimeMillis();
+                outputArray = getByteArray(frame);
+                if(count%AGE_DETECTION_FRAME_COUNT_THRESHOLD == 0){
+                    doDifferentiate();
+                }
+                recognizeFeatures();
+                doRecognizeEmotions();
+
+                //flagging for feedback and start feed backing with the 2 min buffer get filled.
+                if(count%FEEDBACK_FRAME_COUNT_THRESHOLD == 0){
+                    if(startFeedbacking){
+                        doFeedback();
+                        count = 0;
+                    }
+                    else{
+                        if(count%(2*FEEDBACK_FRAME_COUNT_THRESHOLD)==0){
+                            doFeedback();
+                            startFeedbacking = true;
+                            count = 0;
+                        }
+                    }
+                }
+                count++;
+            }
+            //Differentiating between parent and child using age detection for the first time
+            else{
+                lastTime = currentTimeMillis();
+                outputArray = getByteArray(frame);
                 doDifferentiate();
             }
-            recognizeFeatures();
-            doRecognizeEmotions();
-            //flagging for feedback and start feedbacking with the 2 min buffer get filled.
-            if(count%(2*FEEDBACK_FRAME_COUNT_THRESHOLD)==0 && !startFeedbacking){
-                doFeedback();
-                startFeedbacking = true;
-                count = 0;
-            }
-            if(count%FEEDBACK_FRAME_COUNT_THRESHOLD == 0 && startFeedbacking){
-                doFeedback();
-                count = 0;
-            }
-            count++;
         }
-        //Differentiating between parent and child using age detection for the first time
-        if(currentTimeMillis()-lastTime > FEATURE_DETECTION_TIME_THRESHOLD && !Data.isIdentified){
-            lastTime = currentTimeMillis();
-            outputArray = getByteArray(frame);
-            doDifferentiate();
-        }
+
         return mDelegate.detect(frame);
     }
 
@@ -148,7 +156,7 @@ public class FeatureDetector extends Detector<Face> {
     }
 
     /**
-     * Age detection tast using Microsoft Cognitive Services Face API.
+     * Age detection task using Microsoft Cognitive Services Face API.
      */
     private class ageDetectionTask extends AsyncTask<String, String, com.microsoft.projectoxford.face.contract.Face[]> {
         private Exception e = null;

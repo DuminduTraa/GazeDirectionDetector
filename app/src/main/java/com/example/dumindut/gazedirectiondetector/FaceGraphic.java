@@ -14,12 +14,11 @@ import com.google.android.gms.vision.face.Face;
 /*Graphic instance for rendering face position, orientation, and landmarks
     within an associated graphic overlay view.*/
 class FaceGraphic extends GraphicOverlay.Graphic {
-    private static final float FACE_POSITION_RADIUS = 5.0f;
+    private static final float FACE_POSITION_RADIUS = 10.0f;
     private static final float ID_TEXT_SIZE = 40.0f;
     private static final float ID_Y_OFFSET = 50.0f;
     private static final float ID_X_OFFSET = -50.0f;
     private static final float BOX_STROKE_WIDTH = 5.0f;
-    private static final int TIME_THRESHOLD_FOR_GLOBAL_THETA = 1000;
 
     private static final int COLOR_CHOICES[] = {
             Color.BLUE,
@@ -96,8 +95,8 @@ class FaceGraphic extends GraphicOverlay.Graphic {
         String name = Data.UNKNOWN;
         long currentTime = System.currentTimeMillis();
 
-        canvas.drawCircle(x_canvas, y_canvas, FACE_POSITION_RADIUS+5.0f, mFacePositionPaint);
-        canvas.drawCircle(translateX(Data.meetX), scaleY(Data.meetY), FACE_POSITION_RADIUS+5.0f, mFacePositionPaint);
+        canvas.drawCircle(x_canvas, y_canvas, FACE_POSITION_RADIUS, mFacePositionPaint);
+        canvas.drawCircle(translateX(Data.meetX), scaleY(Data.meetY), FACE_POSITION_RADIUS, mFacePositionPaint);
 
         // Draws a bounding box around the face.
         float xOffset = scaleX(face.getWidth() / 2.0f);
@@ -132,7 +131,7 @@ class FaceGraphic extends GraphicOverlay.Graphic {
                         Math.abs(y-Data.Parent.y)*Math.abs(y-Data.Parent.y);
                 float sqrDistanceToChild = Math.abs(x-Data.Child.x)*Math.abs(x-Data.Child.x) +
                         Math.abs(y-Data.Child.y)*Math.abs(y-Data.Child.y);
-                if(sqrDistanceToParent > sqrDistanceToChild){
+                if(sqrDistanceToParent < sqrDistanceToChild){
                     name = Data.PARENT;
                     Data.updateParent(mFaceId,x,y,height,width);
                 }
@@ -144,11 +143,11 @@ class FaceGraphic extends GraphicOverlay.Graphic {
 
             //If the face is a significant face(occurs in each 1000 milliseconds)
             // Calculating rotation details
-            if(name == Data.PARENT  && currentTime-Data.Parent.lastTime >= TIME_THRESHOLD_FOR_GLOBAL_THETA){
+            if(name == Data.PARENT  && currentTime-Data.Parent.lastTime >= Data.TIME_THRESHOLD_FOR_GLOBAL_THETA){
                 isSignificantFace = true;
                 Data.Parent.lastTime = currentTime;
             }
-            else if(name == Data.CHILD  && currentTime-Data.Child.lastTime >= TIME_THRESHOLD_FOR_GLOBAL_THETA){
+            else if(name == Data.CHILD  && currentTime-Data.Child.lastTime >= Data.TIME_THRESHOLD_FOR_GLOBAL_THETA){
                 isSignificantFace = true;
                 Data.Child.lastTime = currentTime;
             }

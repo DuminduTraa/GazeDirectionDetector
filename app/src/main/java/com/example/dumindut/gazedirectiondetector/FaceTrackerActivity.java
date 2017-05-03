@@ -156,9 +156,9 @@ public final class FaceTrackerActivity extends AppCompatActivity {
         }
 
         mCameraSource = new CameraSource.Builder(context, featureDetector)
-                .setRequestedPreviewSize(640,480)
+                .setRequestedPreviewSize(Data.PREVIEW_WIDTH,Data.PREVIEW_HEIGHT)
                 .setFacing(facing)
-                .setRequestedFps(30f)
+                .setRequestedFps(Data.REQUESTED_FRAME_RATE)
                 .setAutoFocusEnabled(true)
                 .build();
     }
@@ -329,7 +329,7 @@ public final class FaceTrackerActivity extends AppCompatActivity {
         }
 
 
-        /*Start tracking the detected face instane within the face overlay.*/
+        /*Start tracking the detected face instance within the face overlay.*/
         @Override
         public void onNewItem(int faceId, Face item) {
             mFaceGraphic.setId(faceId);

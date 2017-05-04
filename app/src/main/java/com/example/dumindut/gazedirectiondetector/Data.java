@@ -1,5 +1,6 @@
 package com.example.dumindut.gazedirectiondetector;
 
+import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -45,6 +46,8 @@ public class Data {
 
     ////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////
+
+    public static FileWriter txtFileWriter;
 
     public static int previewWidth = PREVIEW_WIDTH;
     public static int previewHeight = PREVIEW_HEIGHT;

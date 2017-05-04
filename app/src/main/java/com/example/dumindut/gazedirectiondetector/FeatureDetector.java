@@ -25,6 +25,7 @@ import org.apache.commons.collections4.queue.CircularFifoQueue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -49,14 +50,16 @@ public class FeatureDetector extends Detector<Face> {
     private VisionServiceRestClient visionClient;
     private byte[] outputArray;
     private long lastTime;
+    private long startTime;
+    private long thisFrameTime;
     private int count = 1;
     private boolean startFeedbacking = false;
 
-    private boolean isParentLookingAtChild = false;
-    private boolean isChildLookingAtParent = false;
-    private boolean hasEyeContact = false;
-    private boolean areBothAtSameEyeLevel = false;
-    private boolean hasJointAttention = false;
+    private int isParentLookingAtChild = 0;
+    private int isChildLookingAtParent = 0;
+    private int hasEyeContact = 0;
+    private int areBothAtSameEyeLevel = 0;
+    private int hasJointAttention = 0;
     private float[] parentEmotionVec = new float[8];
     private float[] childEmotionVec = new float[8];
 
@@ -81,6 +84,7 @@ public class FeatureDetector extends Detector<Face> {
         faceClient = client2;
         visionClient = client3;
         lastTime = currentTimeMillis();
+        startTime = lastTime;
     }
 
     /**
@@ -94,7 +98,8 @@ public class FeatureDetector extends Detector<Face> {
     public SparseArray<Face> detect(Frame frame) {
         // *** Custom frame processing code
         //Custom frame processing on the frame once per every threshold seconds approximately
-        if(currentTimeMillis()-lastTime > Data.FEATURE_DETECTION_TIME_THRESHOLD){
+        thisFrameTime = currentTimeMillis();
+        if(thisFrameTime-lastTime > Data.FEATURE_DETECTION_TIME_THRESHOLD){
             if(Data.isIdentified){
                 lastTime = currentTimeMillis();
                 outputArray = getByteArray(frame);
@@ -349,11 +354,11 @@ public class FeatureDetector extends Detector<Face> {
      *
      */
     private void recognizeFeatures(){
-        isChildLookingAtParent = false;
-        isParentLookingAtChild = false;
-        hasEyeContact = false;
-        areBothAtSameEyeLevel = false;
-        hasJointAttention = false;
+        isChildLookingAtParent = 0;
+        isParentLookingAtChild = 0;
+        hasEyeContact = 0;
+        areBothAtSameEyeLevel = 0;
+        hasJointAttention = 0;
 
         double thetaThreshold1;   //to y-faceheight*factor
         double thetaThreshold2;     //to y+faceheight*factor
@@ -386,19 +391,17 @@ public class FeatureDetector extends Detector<Face> {
         //if the two thresholds fall in first and fourth quadrants
         if(thetaThresholdHigh>270 && thetaThresholdLow<90){
             if(globalTheta>thetaThresholdHigh && globalTheta<thetaThresholdLow){
-                isParentLookingAtChild = true;
+                isParentLookingAtChild = 1;
             }
         }
         //other cases
         else{
             if(globalTheta>thetaThresholdLow && globalTheta<thetaThresholdHigh){
-                isParentLookingAtChild = true;
+                isParentLookingAtChild = 1;
             }
         }
         //Updating the buffer
-        if(isParentLookingAtChild){parentLookingAtChildBuffer.add(1);}
-        else{parentLookingAtChildBuffer.add(0);}
-
+        parentLookingAtChildBuffer.add(isParentLookingAtChild);
 
         ///////////////////////////////////////////////////////////////////////////////////////////
         // Checking whether child looking at parent
@@ -423,42 +426,38 @@ public class FeatureDetector extends Detector<Face> {
         //if the two thresholds fall in first and fourth quadrants
         if(thetaThresholdHigh>270 && thetaThresholdLow<90){
             if(globalTheta>thetaThresholdHigh && globalTheta<thetaThresholdLow){
-                isChildLookingAtParent = true;
+                isChildLookingAtParent = 1;
             }
         }
         //other cases
         else{
             if(globalTheta>thetaThresholdLow && globalTheta<thetaThresholdHigh){
-                isChildLookingAtParent = true;
+                isChildLookingAtParent = 1;
             }
         }
         //Updating the buffer
-        if(isChildLookingAtParent){childLookingAtParentBuffer.add(1);}
-        else{childLookingAtParentBuffer.add(0);}
+        childLookingAtParentBuffer.add(isChildLookingAtParent);
 
 
         //////////////////////////////////////////////////////////////////////////////////////////
         // Checking for eye contact (Simply taking the logical AND between the above two features)
-        if(isChildLookingAtParent && isParentLookingAtChild){
-            hasEyeContact = true;
-            eyeContactBuffer.add(1);
+        if(isChildLookingAtParent==1 && isParentLookingAtChild==1){
+            hasEyeContact = 1;
         }
-        else{eyeContactBuffer.add(0);}
+        eyeContactBuffer.add(hasEyeContact);
 
         //////////////////////////////////////////////////////////////////////////////////////////
         //Checking whether parent ad child at same eye level
         if(Math.abs(Data.Parent.y-Data.Child.y)< Data.Parent.faceHeight*Data.PARENT_ELEVATION_FACTOR){
-            areBothAtSameEyeLevel = true;
-            bothAtSameEyeLevelBuffer.add(1);
+            areBothAtSameEyeLevel = 1;
         }
-        else{
-            bothAtSameEyeLevelBuffer.add(0);
-        }
+        bothAtSameEyeLevelBuffer.add(areBothAtSameEyeLevel);
+
 
 
         /////////////////////////////////////////////////////////////////////////////////////////
         // Checking for joint attention
-        if(!isChildLookingAtParent && !isParentLookingAtChild){
+        if(isChildLookingAtParent==0 && isParentLookingAtChild==0){
             Data.meetX = 0;
             Data.meetY = 0;
             float x1 = Data.Parent.x;
@@ -569,13 +568,13 @@ public class FeatureDetector extends Detector<Face> {
                 //on test cases.
                 for (String tag: result.description.tags) {
                     if(Data.TAG_LIST.contains(tag)){
-                        hasJointAttention = true;
+                        hasJointAttention = 1;
                         jointAttentiontBuffer.add(1);
                         break;
                     }
                 }
             }
-            if(!hasJointAttention){
+            if(hasJointAttention==0){
                 jointAttentiontBuffer.add(0);
             }
         }
@@ -587,6 +586,31 @@ public class FeatureDetector extends Detector<Face> {
      */
     public void showResults(TextView textView){
         String resultText = "\n";
+        String logText = "";
+
+        logText += (thisFrameTime-startTime)/1000.0f + ", ";
+        logText += hasJointAttention+ ", ";
+        logText += hasEyeContact + ", ";
+        logText += areBothAtSameEyeLevel + ", ";
+        logText += isParentLookingAtChild + ", ";
+        logText += isChildLookingAtParent + ", ";
+        for(int i=0; i<8; i++){
+            logText += parentEmotionVec[i]+ ", ";
+        }
+        for(int i=0; i<7; i++){
+            logText += childEmotionVec[i]+ ", ";
+        }
+        logText += childEmotionVec[7] + " N ";
+
+        try{
+            Data.txtFileWriter.append(logText);
+            Data.txtFileWriter.flush();
+            Log.e("log",logText);
+        }
+        catch(IOException e){
+            Log.e("Writing to File",e.toString());
+        }
+
 
         resultText += "Parent looking at child : " + isParentLookingAtChild;
         resultText += "\nChild looking at parent : " + isChildLookingAtParent;

@@ -595,14 +595,15 @@ public class FeatureDetector extends Detector<Face> {
         logText += isParentLookingAtChild + ", ";
         logText += isChildLookingAtParent + ", ";
         for(int i=0; i<8; i++){
-            logText += parentEmotionVec[i]+ ", ";
+            logText +=String.format("%.10f", parentEmotionVec[i])+ ", ";
         }
         for(int i=0; i<7; i++){
-            logText += childEmotionVec[i]+ ", ";
+            logText += String.format("%.10f", childEmotionVec[i])+ ", ";
         }
-        logText += childEmotionVec[7] + " N ";
+        logText += String.format("%.10f", childEmotionVec[7]);
 
         try{
+            Data.txtFileWriter.append(System.lineSeparator());
             Data.txtFileWriter.append(logText);
             Data.txtFileWriter.flush();
             Log.e("log",logText);

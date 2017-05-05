@@ -6,8 +6,10 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -15,6 +17,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.example.dumindut.gazedirectiondetector.ui.camera.CameraSourcePreview;
 import com.example.dumindut.gazedirectiondetector.ui.camera.GraphicOverlay;
@@ -29,7 +32,12 @@ import com.microsoft.projectoxford.emotion.EmotionServiceRestClient;
 import com.microsoft.projectoxford.face.FaceServiceRestClient;
 import com.microsoft.projectoxford.vision.VisionServiceRestClient;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 /**
  * Face Tracking activity. Currently the main activity in the app
@@ -48,11 +56,13 @@ public final class FaceTrackerActivity extends AppCompatActivity {
     // permission request codes need to be < 256
     private static final int RC_HANDLE_CAMERA_PERM = 2;
 
-    private boolean mIsFrontFacing = true;
+    private boolean mIsFrontFacing;
 
     public EmotionServiceRestClient emotionClient;
     public FaceServiceRestClient faceClient;
     public VisionServiceRestClient visionClient;
+
+    //private FileWriter txtFileWriter;
 
     /**
      * Initializes the UI and initiates the creation of a face detector
@@ -62,6 +72,26 @@ public final class FaceTrackerActivity extends AppCompatActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
+
+        Intent intent = getIntent();
+        mIsFrontFacing = intent.getBooleanExtra("isFrontFacing",true);
+
+        if(isExternalStorageWritable()){
+            String fileName = new SimpleDateFormat("yyyyMMddHHmm'.txt'").format(new Date());
+            try{
+                File txtFileFolder = getFileStorageDir("Parent Child Monitor");
+                File txtFile = new File(txtFileFolder,fileName);
+                Data.txtFileWriter = new FileWriter(txtFile);
+            }
+            catch (IOException E){
+                Toast.makeText(FaceTrackerActivity.this, "could not open the file writer", Toast.LENGTH_SHORT).show();
+            }
+        }
+        else{
+            Toast.makeText(FaceTrackerActivity.this, "External Storage not available!!!", Toast.LENGTH_SHORT).show();
+        }
+
+
         //API calls
         if (emotionClient == null) {
            emotionClient = new EmotionServiceRestClient(getString(R.string.emotion_subscription_key));
@@ -78,9 +108,9 @@ public final class FaceTrackerActivity extends AppCompatActivity {
         resultTextView = (TextView) findViewById(R.id.result_text_view);
         feedbackTextView = (TextView) findViewById(R.id.feedback_text_View);
 
-        final Button flipButton = (Button) findViewById(R.id.flipButton);
+        final Button stopButton = (Button) findViewById(R.id.stopButton);
         final Button resetButton = (Button) findViewById(R.id.resetButton);
-        flipButton.setOnClickListener(mFlipButtonListener);
+        stopButton.setOnClickListener(mStopButtonListener);
         resetButton.setOnClickListener(mResetButtonListener);
 
         if (savedInstanceState != null) {
@@ -94,6 +124,26 @@ public final class FaceTrackerActivity extends AppCompatActivity {
             requestCameraPermission();
         }
     }
+
+    public File getFileStorageDir(String fileName) {
+        // Get the directory for the user's public documents directory.
+        File file = new File(Environment.getExternalStoragePublicDirectory(
+                Environment.DIRECTORY_DOCUMENTS), fileName);
+        if (!file.mkdirs()) {
+            Log.e("file", "Directory not created");
+        }
+        return file;
+    }
+
+    /* Checks if external storage is available for read and write */
+    public boolean isExternalStorageWritable() {
+        String state = Environment.getExternalStorageState();
+        if (Environment.MEDIA_MOUNTED.equals(state)) {
+            return true;
+        }
+        return false;
+    }
+
 
     /**
      * Requesting camera permission. Manifest should include the camera permission
@@ -156,9 +206,9 @@ public final class FaceTrackerActivity extends AppCompatActivity {
         }
 
         mCameraSource = new CameraSource.Builder(context, featureDetector)
-                .setRequestedPreviewSize(640,480)
+                .setRequestedPreviewSize(Data.PREVIEW_WIDTH,Data.PREVIEW_HEIGHT)
                 .setFacing(facing)
-                .setRequestedFps(30f)
+                .setRequestedFps(Data.REQUESTED_FRAME_RATE)
                 .setAutoFocusEnabled(true)
                 .build();
     }
@@ -213,7 +263,7 @@ public final class FaceTrackerActivity extends AppCompatActivity {
 
         if (grantResults.length != 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
             Log.d(TAG, "Camera permission granted - initialize the camera source");
-            // we have permission, so create the camerasource
+            // we have permission, sno create the camerasource
             createCameraSource();
             return;
         }
@@ -243,25 +293,6 @@ public final class FaceTrackerActivity extends AppCompatActivity {
         savedInstanceState.putBoolean("IsFrontFacing", mIsFrontFacing);
     }
 
-    /**
-     * Toggles between front-facing and rear-facing modes.
-     * Static variables in Data class are cleared.
-     */
-    private View.OnClickListener mFlipButtonListener = new View.OnClickListener() {
-        public void onClick(View v) {
-            mIsFrontFacing = !mIsFrontFacing;
-
-            if (mCameraSource != null) {
-                mCameraSource.release();
-                mCameraSource = null;
-            }
-            Data.clearData();
-            resultTextView.setText("Results");
-            feedbackTextView.setText("Feedback");
-            createCameraSource();
-            startCameraSource();
-        }
-    };
 
     /*
     OnClick Listener for the reset button. the static variables in Data class are cleared.
@@ -278,6 +309,31 @@ public final class FaceTrackerActivity extends AppCompatActivity {
             feedbackTextView.setText("Feedback");
             createCameraSource();
             startCameraSource();
+        }
+    };
+
+    /**
+     * Stopping the processing and sae the log file
+     */
+    private View.OnClickListener mStopButtonListener = new View.OnClickListener() {
+        public void onClick(View v) {
+            if (mCameraSource != null) {
+                mCameraSource.release();
+                mCameraSource = null;
+            }
+            try{
+                Data.txtFileWriter.close();
+            }
+            catch(IOException E){
+                Toast.makeText(FaceTrackerActivity.this, "Could not close the file!!!", Toast.LENGTH_SHORT).show();
+            }
+            Data.clearData();
+            resultTextView.setText("Results");
+            feedbackTextView.setText("Feedback");
+
+            Intent intent = new Intent(FaceTrackerActivity.this,MainActivity.class);
+            startActivity(intent);
+
         }
     };
 
@@ -329,7 +385,7 @@ public final class FaceTrackerActivity extends AppCompatActivity {
         }
 
 
-        /*Start tracking the detected face instane within the face overlay.*/
+        /*Start tracking the detected face instance within the face overlay.*/
         @Override
         public void onNewItem(int faceId, Face item) {
             mFaceGraphic.setId(faceId);

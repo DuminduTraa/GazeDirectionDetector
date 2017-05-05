@@ -21,24 +21,26 @@
     </com.example.dumindut.gazedirectiondetector.ui.camera.CameraSourcePreview>
 
     <Button
-        android:id="@+id/flipButton"
+        android:id="@+id/stopButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="FLIP"
+        android:text="STOP"
         android:textSize="24dp"
-        android:layout_alignParentBottom="true"
+        android:layout_alignParentTop="true"
         android:layout_alignParentRight="true"
-        android:layout_margin="8dp"/>
+        android:layout_margin="8dp"
+        android:textColor="#FF0000"/>
+
 
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="RESET"
-        android:textSize="24dp"
         android:id="@+id/resetButton"
-        android:layout_above="@+id/flipButton"
+        android:textSize="24dp"
+        android:layout_alignParentBottom="true"
         android:layout_alignParentRight="true"
-        android:layout_margin="8dp"/>
+        android:layout_margin="8dp" />
 
     <LinearLayout
         android:layout_width="match_parent"

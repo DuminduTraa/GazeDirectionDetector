@@ -8,6 +8,7 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.ViewGroup;
 
+import com.example.dumindut.gazedirectiondetector.Data;
 import com.google.android.gms.common.images.Size;
 import com.google.android.gms.vision.CameraSource;
 
@@ -112,8 +113,8 @@ public class CameraSourcePreview extends ViewGroup {
 
     @Override
     protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
-        int previewWidth = 320;
-        int previewHeight = 240;
+        int previewWidth = Data.PREVIEW_WIDTH;
+        int previewHeight = Data.PREVIEW_HEIGHT;
         if (mCameraSource != null) {
             Size size = mCameraSource.getPreviewSize();
             if (size != null) {

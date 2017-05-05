@@ -14,7 +14,7 @@ import com.google.android.gms.vision.face.Face;
 /*Graphic instance for rendering face position, orientation, and landmarks
     within an associated graphic overlay view.*/
 class FaceGraphic extends GraphicOverlay.Graphic {
-    private static final float FACE_POSITION_RADIUS = 5.0f;
+    private static final float FACE_POSITION_RADIUS = 10.0f;
     private static final float ID_TEXT_SIZE = 40.0f;
     private static final float ID_Y_OFFSET = 50.0f;
     private static final float ID_X_OFFSET = -50.0f;
@@ -92,11 +92,11 @@ class FaceGraphic extends GraphicOverlay.Graphic {
         float x_canvas = translateX(x);
         float y_canvas = scaleY(y);
 
-        String name;
+        String name = Data.UNKNOWN;
         long currentTime = System.currentTimeMillis();
 
-        canvas.drawCircle(x_canvas, y_canvas, FACE_POSITION_RADIUS+5.0f, mFacePositionPaint);
-        canvas.drawCircle(translateX(Data.meetX), scaleY(Data.meetY), FACE_POSITION_RADIUS+5.0f, mFacePositionPaint);
+        canvas.drawCircle(x_canvas, y_canvas, FACE_POSITION_RADIUS, mFacePositionPaint);
+        canvas.drawCircle(translateX(Data.meetX), scaleY(Data.meetY), FACE_POSITION_RADIUS, mFacePositionPaint);
 
         // Draws a bounding box around the face.
         float xOffset = scaleX(face.getWidth() / 2.0f);
@@ -117,72 +117,75 @@ class FaceGraphic extends GraphicOverlay.Graphic {
         if(Data.isIdentified){  //Parent and Child defined
             boolean isSignificantFace = false;
 
-            boolean couldBeParent = Math.abs(x-Data.Parent.x)<Data.Parent.faceWidth/2 &&
-                    Math.abs(y-Data.Parent.y)<Data.Parent.faceHeight/2;
-            boolean couldBeChild = Math.abs(x-Data.Child.x)<Data.Child.faceWidth/2 &&
-                    Math.abs(y-Data.Child.y)<Data.Child.faceHeight/2;
-
             //Updating parent, child basic information and keep tracking.
-            if(mFaceId == Data.Parent.id || couldBeParent){
+            if(mFaceId == Data.Parent.id){
                 name = Data.PARENT;
                 Data.updateParent(mFaceId,x,y,height,width);
             }
-            else if(mFaceId == Data.Child.id || couldBeChild) {
+            else if(mFaceId == Data.Child.id) {
                 name = Data.CHILD;
                 Data.updateChild(mFaceId,x,y,height,width);
             }
-            else{name = Data.UNKNOWN;}
+            else{
+                float sqrDistanceToParent = Math.abs(x-Data.Parent.x)*Math.abs(x-Data.Parent.x) +
+                        Math.abs(y-Data.Parent.y)*Math.abs(y-Data.Parent.y);
+                float sqrDistanceToChild = Math.abs(x-Data.Child.x)*Math.abs(x-Data.Child.x) +
+                        Math.abs(y-Data.Child.y)*Math.abs(y-Data.Child.y);
+                if(sqrDistanceToParent < sqrDistanceToChild){
+                    name = Data.PARENT;
+                    Data.updateParent(mFaceId,x,y,height,width);
+                }
+                else{
+                    name = Data.CHILD;
+                    Data.updateChild(mFaceId,x,y,height,width);
+                }
+            }
 
-            //If the face is a significant face(occurs in each 300 milliseconds)
-            // Calculating features
-            if(name == Data.PARENT  && currentTime-Data.Parent.lastTime >= 300){
+            //If the face is a significant face(occurs in each 1000 milliseconds)
+            // Calculating rotation details
+            if(name == Data.PARENT  && currentTime-Data.Parent.lastTime >= Data.TIME_THRESHOLD_FOR_GLOBAL_THETA){
                 isSignificantFace = true;
                 Data.Parent.lastTime = currentTime;
             }
-            else if(name == Data.CHILD  && currentTime-Data.Child.lastTime >= 300){
+            else if(name == Data.CHILD  && currentTime-Data.Child.lastTime >= Data.TIME_THRESHOLD_FOR_GLOBAL_THETA){
                 isSignificantFace = true;
                 Data.Child.lastTime = currentTime;
             }
 
-            // Main face processing task happens once in each 300 milli seconds
+            // calculating looking direction happens once in each 1000 milli seconds
             if(isSignificantFace){
                 float eulerY = face.getEulerY();
                 float eulerZ = face.getEulerZ();
 
                 float theta = Math.abs(eulerZ); //0-60
-                float dirLineLength = Math.abs(eulerY)/60*1000;
-                boolean isThetaPositive;
-                boolean isLeft;
+                //float dirLineLength = Math.abs(eulerY)/60*1000;
 
                 float globalTheta; // 0-360
 
                 //All the details according to the person, not the camera.
-                if (eulerZ > 0) {isThetaPositive = false;}
-                else {isThetaPositive = true;}
-                if (eulerY > 0) {isLeft = false;}       // Left is person's left
-                else {isLeft = true;}
-
                 //Defining global theta(0-360) taking into consideration isThetaPositive and IsLeft
-                if(isThetaPositive && isLeft){ // Third Quadrant (180-270) range 180(0)-240(60)
-                    globalTheta = 180 + theta;
+                if(eulerZ<0){
+                    if(eulerY<0){
+                        globalTheta = 180 + theta; // Third Quadrant (180-270) range 180(0)-240(60)
+                    }
+                    else{
+                        globalTheta = theta; // First Quadrant (0-90) range 0(0)-60(60)
+                    }
                 }
-                else if(isThetaPositive && !isLeft){    // First Quadrant (0-90) range 0(0)-60(60)
-                    globalTheta = theta;
-                }
-                else if(!isThetaPositive && isLeft){   // Second Quadrant(90-180) range 120(60)-180(0)
-                    globalTheta =  180 - theta;
-                }
-                else{  //4th Quadrant (270-360)  range 300(60)-360(0)
-                    globalTheta = 360 - theta;
+                else{
+                    if(eulerY<0){
+                        globalTheta =  180 - theta;  // Second Quadrant(90-180) range 120(60)-180(0)
+                    }
+                    else{
+                        globalTheta = 360 - theta;  //4th Quadrant (270-360)  range 300(60)-360(0)
+                    }
                 }
 
-                //Assinging globalTheta to relevant person
+
+                //Assigning globalTheta to relevant person
                 if(name == Data.PARENT){Data.Parent.globalTheta = globalTheta;}
                 if(name == Data.CHILD){Data.Child.globalTheta = globalTheta;}
             }
-        }
-        else{
-            name = Data.UNKNOWN;
         }
         canvas.drawText(name, x_canvas + ID_X_OFFSET, y_canvas + ID_Y_OFFSET, mIdPaint);
     }

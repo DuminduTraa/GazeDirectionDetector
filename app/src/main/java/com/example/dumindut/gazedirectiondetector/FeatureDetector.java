@@ -55,13 +55,14 @@ public class FeatureDetector extends Detector<Face> {
     private int count = 1;
     private boolean startFeedbacking = false;
 
-    private int isParentLookingAtChild = 0;
-    private int isChildLookingAtParent = 0;
-    private int hasEyeContact = 0;
-    private int areBothAtSameEyeLevel = 0;
-    private int hasJointAttention = 0;
+    private int isParentLookingAtChild = -1;
+    private int isChildLookingAtParent = -1;
+    private int hasEyeContact = -1;
+    private int areBothAtSameEyeLevel = -1;
+    private int hasJointAttention = -1;
     private float[] parentEmotionVec = new float[8];
     private float[] childEmotionVec = new float[8];
+    private float[] unknownEmotionVec = new float[8];
 
     CircularFifoQueue<Integer> parentLookingAtChildBuffer = new CircularFifoQueue<Integer>(Data.AVERAGING_WINDOW_LENGTH);
     CircularFifoQueue<Integer> childLookingAtParentBuffer = new CircularFifoQueue<Integer>(Data.AVERAGING_WINDOW_LENGTH);
@@ -123,11 +124,11 @@ public class FeatureDetector extends Detector<Face> {
 
                 count++;
             }
-            //Differentiating between parent and child using age detection for the first time
             else{
                 lastTime = currentTimeMillis();
                 outputArray = getByteArray(frame);
                 doDifferentiate();
+                doRecognizeEmotions();
             }
         }
 
@@ -193,11 +194,10 @@ public class FeatureDetector extends Detector<Face> {
                 Log.e("Age detection", e.getMessage());
                 this.e = null;
             }
-            else if (result.length!=2) {
-                resultTextView.setText("Could not find two faces for age detection:(");
-                Log.e("Age detection", "Could not find two faces");
+            else if (result.length==1 && !Data.isIdentified) {
+                Data.isOnlyOneFace=true;
             }
-            else {
+            else if (result.length==2){
                 double x1 = result[0].faceRectangle.left + result[0].faceRectangle.width/2;
                 double x2 = result[1].faceRectangle.left + result[1].faceRectangle.width/2;
                 double y1 = result[0].faceRectangle.top + result[0].faceRectangle.height/2;
@@ -230,6 +230,11 @@ public class FeatureDetector extends Detector<Face> {
                     Data.Child.faceHeight = height1;
                 }
                 Data.isIdentified=true;
+                Data.isOnlyOneFace=false;
+            }
+            else{
+                resultTextView.setText("Could not find faces for age detection:(");
+                Log.e("Age detection", "Could not find faces");
             }
         }
     }
@@ -287,11 +292,22 @@ public class FeatureDetector extends Detector<Face> {
                 Log.e("Emotion detection ", e.getMessage());
                 this.e = null;
             }
-            else if (result.size() != 2) {
-                resultTextView.setText("Could not find two faces for emotion detection :(");
-                Log.e("Emotion detection ", " Could not find two faces'");
+            else if (result.size() == 1 && Data.isOnlyOneFace) {
+                float[] emotionVec = new float[8];
+                RecognizeResult r = result.get(0);
+
+                emotionVec[0] = (float)r.scores.anger;
+                emotionVec[1] = (float)r.scores.contempt;
+                emotionVec[2] = (float)r.scores.disgust;
+                emotionVec[3] = (float)r.scores.fear;
+                emotionVec[4] = (float)r.scores.happiness;
+                emotionVec[5] = (float)r.scores.neutral;
+                emotionVec[6] = (float)r.scores.sadness;
+                emotionVec[7] = (float)r.scores.surprise;
+
+                unknownEmotionVec = emotionVec;
             }
-            else {
+            else if (result.size() == 2 && Data.isIdentified) {
                 for (RecognizeResult r : result) {
                     float x = r.faceRectangle.left + r.faceRectangle.width/2;
                     float y = r.faceRectangle.top + r.faceRectangle.height/2;
@@ -325,8 +341,13 @@ public class FeatureDetector extends Detector<Face> {
                     }
                     else{}
                 }
-                showResults(resultTextView);
+
             }
+            else{
+                resultTextView.setText("Could not find two faces for emotion detection :(");
+                Log.e("Emotion detection ", " Could not find two faces'");
+            }
+            showResults(resultTextView);
         }
     }
 
@@ -594,13 +615,41 @@ public class FeatureDetector extends Detector<Face> {
         logText += areBothAtSameEyeLevel + ", ";
         logText += isParentLookingAtChild + ", ";
         logText += isChildLookingAtParent + ", ";
-        for(int i=0; i<8; i++){
-            logText +=String.format("%.10f", parentEmotionVec[i])+ ", ";
+
+        if(Data.isIdentified){
+            logText += Data.PARENT + ", ";
+            for(int i=0; i<8; i++){
+                logText +=String.format("%.10f", parentEmotionVec[i])+ ", ";
+            }
+            logText += Data.CHILD + ", ";
+            for(int i=0; i<7; i++){
+                logText += String.format("%.10f", childEmotionVec[i])+ ", ";
+            }
+            logText += String.format("%.10f", childEmotionVec[7]);
         }
-        for(int i=0; i<7; i++){
-            logText += String.format("%.10f", childEmotionVec[i])+ ", ";
+        else if (Data.isOnlyOneFace){
+            logText += Data.UNKNOWN + ", ";
+            for(int i=0; i<8; i++){
+                logText +=String.format("%.10f", unknownEmotionVec[i])+ ", ";
+            }
+            logText += Data.NONE + ", ";
+            for(int i=0; i<7; i++){
+                logText += String.format("%.10f", 0.0)+ ", ";
+            }
+            logText += String.format("%.10f", 0.0);
         }
-        logText += String.format("%.10f", childEmotionVec[7]);
+        else{
+            logText += Data.NONE + ", ";
+            for(int i=0; i<8; i++){
+                logText +=String.format("%.10f", 0.0)+ ", ";
+            }
+            logText += Data.NONE + ", ";
+            for(int i=0; i<7; i++){
+                logText += String.format("%.10f", 0.0)+ ", ";
+            }
+            logText += String.format("%.10f", 0.0);
+        }
+
 
         try{
             Data.txtFileWriter.append(System.lineSeparator());
@@ -618,9 +667,16 @@ public class FeatureDetector extends Detector<Face> {
         resultText += "\nEye Contact : " + hasEyeContact;
         resultText += "\nBoth at same eye level : " + areBothAtSameEyeLevel;
         resultText += "\nJoint Attention : " + hasJointAttention;
-        resultText += "\nParent Emotion Vec : " + Arrays.toString(parentEmotionVec);
-        resultText += "\nChild Emotion Vec : " + Arrays.toString(childEmotionVec);
-
+        if(Data.isIdentified){
+            resultText += "\nParent Emotion Vec : " + Arrays.toString(parentEmotionVec);
+            resultText += "\nChild Emotion Vec : " + Arrays.toString(childEmotionVec);
+        }
+        else if (Data.isOnlyOneFace){
+            resultText += "\nUndeterminate Emotion Vec : " + Arrays.toString(unknownEmotionVec);
+        }
+        else{
+            resultText += "\nNO Emotions";
+        }
         textView.setText(resultText);
         Log.d("  ", resultText);
     }

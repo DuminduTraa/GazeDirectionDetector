@@ -10,9 +10,10 @@ import java.util.Arrays;
  */
 public class Data {
 
-    public static final String PARENT = "parent";
-    public static final String CHILD = "child";
-    public static final String UNKNOWN = "unknown";
+    public static final String PARENT = "ADULT";
+    public static final String CHILD = "CHILD";
+    public static final String UNKNOWN = "INDETERMINATE";
+    public static final String NONE = "NONE";
 
     ////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////
@@ -56,6 +57,7 @@ public class Data {
     public static float meetY = 0;
 
     public static boolean isIdentified = false;
+    public static boolean isOnlyOneFace = false;
 
     static void clearData(){
         isIdentified = false;

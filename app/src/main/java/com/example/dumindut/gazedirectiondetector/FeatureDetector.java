@@ -109,19 +109,17 @@ public class FeatureDetector extends Detector<Face> {
                 }
                 recognizeFeatures();
                 doRecognizeEmotions();
-
                 //flagging for feedback and start feed backing with the 2 min buffer get filled.
-                if(count%Data.AVERAGING_FRAME_COUNT_THRESHOLD == 0 && startFeedbacking) {
-                    doFeedback();
-                    count = 0;
-                }
-
-                if(count%(Data.AVERAGING_WINDOW_LENGTH)==0 && !startFeedbacking){
-                    doFeedback();
-                    startFeedbacking = true;
-                    count = 0;
-                }
-
+//                if(count%Data.AVERAGING_FRAME_COUNT_THRESHOLD == 0 && startFeedbacking) {
+//                    doFeedback();
+//                    count = 0;
+//                }
+//
+//                if(count%(Data.AVERAGING_WINDOW_LENGTH)==0 && !startFeedbacking){
+//                    doFeedback();
+//                    startFeedbacking = true;
+//                    count = 0;
+//                }
                 count++;
             }
             else{
@@ -504,7 +502,9 @@ public class FeatureDetector extends Detector<Face> {
                         Data.meetX = (float)meetX;
                         Data.meetY = (float)meetY;
                         //Describing the suspicious area with Microsoft Cognitive Services Object detection
-                        doDescribe();
+                        //doDescribe();
+                        hasJointAttention=1;
+                        jointAttentiontBuffer.add(1);
                     }
                     else{jointAttentiontBuffer.add(0);}
                 }

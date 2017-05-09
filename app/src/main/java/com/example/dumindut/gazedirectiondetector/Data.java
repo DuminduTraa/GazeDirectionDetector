@@ -40,12 +40,16 @@ public class Data {
     public static final int AVERAGING_FRAME_COUNT_THRESHOLD = 5;//...no of feature detection frames
     public static final int AVERAGING_WINDOW_LENGTH = 20;//...no of feature detection frames
 
-    public static final int TIME_THRESHOLD_FOR_GLOBAL_THETA = FEATURE_DETECTION_TIME_THRESHOLD/2;
+    public static final int TIME_THRESHOLD_FOR_GLOBAL_THETA = FEATURE_DETECTION_TIME_THRESHOLD/5;
 
     // Settings for features
     public static final float FACE_HEIGHT_FACTOR = 0.25f;  // for X looking at y thresholds
     public static final float CROP_DIMENSION_FACTOR = 2.0f; //crop width/height factor
     public static final float PARENT_ELEVATION_FACTOR = 0.5f; // for parent child same eye level check
+
+    /*Euler Y tolerances for joint attention and x looking at y*/
+    public static final float DIR_LENGTH_THRESHOLD_X_LOOKING_AT_Y = 15;
+    public static final float DIR_LENGTH_SUM_THRESHOLD = 30;
 
     private static final String[] TAGS = {"colored","dog","animal","stuffed","bear","teddy","toy",
             "colorful","decorated","plastic","sign"};
@@ -93,6 +97,7 @@ public class Data {
         public static float faceHeight;
 
         public static float globalTheta;
+        public static float dirLength;
         public static long lastTime;
     }
 
@@ -104,6 +109,7 @@ public class Data {
         public static float faceHeight;
 
         public static float globalTheta;
+        public static float dirLength;
         public static long lastTime;
     }
 }

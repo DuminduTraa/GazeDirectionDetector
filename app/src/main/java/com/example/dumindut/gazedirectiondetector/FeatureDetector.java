@@ -381,9 +381,10 @@ public class FeatureDetector extends Detector<Face> {
 
         double thetaThreshold1;   //to y-faceheight*factor
         double thetaThreshold2;     //to y+faceheight*factor
-        double thetaThresholdHigh;
+        double thetaThresholdHigh;   //whichever higher among the above two
         double thetaThresholdLow;
         float globalTheta;
+        float rayLength;    //Abs(euler y)
         float heightChange;
 
 
@@ -394,6 +395,7 @@ public class FeatureDetector extends Detector<Face> {
         * between the thresholds*/
         heightChange = Data.Child.faceHeight*Data.FACE_HEIGHT_FACTOR;
         globalTheta = Data.Parent.globalTheta;
+        rayLength = Data.Parent.dirLength;
         thetaThreshold1 = Math.atan2(Data.Child.y-heightChange-Data.Parent.y , Data.Child.x-Data.Parent.x);
         thetaThreshold2 = Math.atan2(Data.Child.y+heightChange-Data.Parent.y , Data.Child.x-Data.Parent.x);
         thetaThreshold1 = Math.toDegrees(thetaThreshold1);
@@ -407,18 +409,22 @@ public class FeatureDetector extends Detector<Face> {
             thetaThresholdHigh = thetaThreshold2;
             thetaThresholdLow = thetaThreshold1;
         }
-        //if the two thresholds fall in first and fourth quadrants
-        if(thetaThresholdHigh>270 && thetaThresholdLow<90){
-            if(globalTheta>thetaThresholdHigh && globalTheta<thetaThresholdLow){
-                isParentLookingAtChild = 1;
+
+        if(rayLength>Data.DIR_LENGTH_THRESHOLD_X_LOOKING_AT_Y){
+            //if the two thresholds fall in first and fourth quadrants
+            if(thetaThresholdHigh>270 && thetaThresholdLow<90){
+                if(globalTheta>thetaThresholdHigh && globalTheta<thetaThresholdLow){
+                    isParentLookingAtChild = 1;
+                }
+            }
+            //other cases
+            else{
+                if(globalTheta>thetaThresholdLow && globalTheta<thetaThresholdHigh){
+                    isParentLookingAtChild = 1;
+                }
             }
         }
-        //other cases
-        else{
-            if(globalTheta>thetaThresholdLow && globalTheta<thetaThresholdHigh){
-                isParentLookingAtChild = 1;
-            }
-        }
+
         //Updating the buffer
         parentLookingAtChildBuffer.add(isParentLookingAtChild);
 
@@ -429,6 +435,7 @@ public class FeatureDetector extends Detector<Face> {
         * between the thresholds*/
         heightChange = Data.Parent.faceHeight*Data.FACE_HEIGHT_FACTOR;
         globalTheta = Data.Child.globalTheta;
+        rayLength = Data.Child.dirLength;
         thetaThreshold1 = Math.atan2(Data.Parent.y-heightChange-Data.Child.y , Data.Parent.x-Data.Child.x);
         thetaThreshold2 = Math.atan2(Data.Parent.y+heightChange-Data.Child.y , Data.Parent.x-Data.Child.x);
         thetaThreshold1 = Math.toDegrees(thetaThreshold1);
@@ -442,18 +449,22 @@ public class FeatureDetector extends Detector<Face> {
             thetaThresholdHigh = thetaThreshold2;
             thetaThresholdLow = thetaThreshold1;
         }
-        //if the two thresholds fall in first and fourth quadrants
-        if(thetaThresholdHigh>270 && thetaThresholdLow<90){
-            if(globalTheta>thetaThresholdHigh && globalTheta<thetaThresholdLow){
-                isChildLookingAtParent = 1;
+
+        if(rayLength>Data.DIR_LENGTH_THRESHOLD_X_LOOKING_AT_Y){
+            //if the two thresholds fall in first and fourth quadrants
+            if(thetaThresholdHigh>270 && thetaThresholdLow<90){
+                if(globalTheta>thetaThresholdHigh && globalTheta<thetaThresholdLow){
+                    isChildLookingAtParent = 1;
+                }
+            }
+            //other cases
+            else{
+                if(globalTheta>thetaThresholdLow && globalTheta<thetaThresholdHigh){
+                    isChildLookingAtParent = 1;
+                }
             }
         }
-        //other cases
-        else{
-            if(globalTheta>thetaThresholdLow && globalTheta<thetaThresholdHigh){
-                isChildLookingAtParent = 1;
-            }
-        }
+
         //Updating the buffer
         childLookingAtParentBuffer.add(isChildLookingAtParent);
 
@@ -476,7 +487,8 @@ public class FeatureDetector extends Detector<Face> {
 
         /////////////////////////////////////////////////////////////////////////////////////////
         // Checking for joint attention
-        if(isChildLookingAtParent==0 && isParentLookingAtChild==0){
+        float dirLengthSum = Data.Parent.dirLength+Data.Child.dirLength;
+        if(isChildLookingAtParent==0 && isParentLookingAtChild==0 && dirLengthSum > Data.DIR_LENGTH_SUM_THRESHOLD){
             Data.meetX = 0;
             Data.meetY = 0;
             float x1 = Data.Parent.x;

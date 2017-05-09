@@ -183,8 +183,14 @@ class FaceGraphic extends GraphicOverlay.Graphic {
 
 
                 //Assigning globalTheta to relevant person
-                if(name == Data.PARENT){Data.Parent.globalTheta = globalTheta;}
-                if(name == Data.CHILD){Data.Child.globalTheta = globalTheta;}
+                if(name == Data.PARENT){
+                    Data.Parent.globalTheta = globalTheta;
+                    Data.Parent.dirLength = Math.abs(eulerY);
+                }
+                if(name == Data.CHILD){
+                    Data.Child.globalTheta = globalTheta;
+                    Data.Child.dirLength = Math.abs(eulerY);
+                }
             }
         }
         canvas.drawText(name, x_canvas + ID_X_OFFSET, y_canvas + ID_Y_OFFSET, mIdPaint);

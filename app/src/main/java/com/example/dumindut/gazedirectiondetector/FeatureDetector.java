@@ -129,7 +129,6 @@ public class FeatureDetector extends Detector<Face> {
                 doRecognizeEmotions();
             }
         }
-
         return mDelegate.detect(frame);
     }
 
@@ -180,7 +179,7 @@ public class FeatureDetector extends Detector<Face> {
         }
 
         /**
-         * On succesfull completion of calling client and with the results produced by client
+         * On successful completion of calling client and with the results produced by client
          * starting the differentiating task and storing parent and child information on Data class
          * to be shared with Google's vision face processing.
          * @param result resulting array containing face information
@@ -383,10 +382,59 @@ public class FeatureDetector extends Detector<Face> {
         double thetaThreshold2;     //to y+faceheight*factor
         double thetaThresholdHigh;   //whichever higher among the above two
         double thetaThresholdLow;
-        float globalTheta;
-        float rayLength;    //Abs(euler y)
+
+        float parentTheta;
+        float childTheta;
+
+        float parentEulerZ = Data.Parent.eulerZ;
+        float parentEulerY = Data.Parent.eulerY;
+        float childEulerZ = Data.Child.eulerZ;
+        float childEulerY = Data.Child.eulerY;
+
+        float parentAbsZ = Math.abs(parentEulerZ);
+        float childAbsZ = Math.abs(childEulerZ);
+        float parentAbsY = Math.abs(parentEulerY);
+        float childAbsY = Math.abs(childEulerY);
+
         float heightChange;
 
+        /*calculating looking directions of parent and child*/
+
+        //All the details according to the person, not the camera.
+        //Defining global theta(0-360) taking into consideration isThetaPositive and IsLeft
+        if(parentEulerZ<0){
+            if(parentEulerY<0){
+                parentTheta = 180 + parentAbsZ; // Third Quadrant (180-270) range 180(0)-240(60)
+            }
+            else{
+                parentTheta = parentAbsZ; // First Quadrant (0-90) range 0(0)-60(60)
+            }
+        }
+        else{
+            if(parentEulerY<0){
+                parentTheta =  180 - parentAbsZ;  // Second Quadrant(90-180) range 120(60)-180(0)
+            }
+            else{
+                parentTheta = 360 - parentAbsZ;  //4th Quadrant (270-360)  range 300(60)-360(0)
+            }
+        }
+
+        if(childEulerZ<0){
+            if(childEulerY<0){
+                childTheta = 180 + childAbsZ; // Third Quadrant (180-270) range 180(0)-240(60)
+            }
+            else{
+                childTheta = childAbsZ; // First Quadrant (0-90) range 0(0)-60(60)
+            }
+        }
+        else{
+            if(childEulerY<0){
+                childTheta =  180 - childAbsZ;  // Second Quadrant(90-180) range 120(60)-180(0)
+            }
+            else{
+                childTheta = 360 - childAbsZ;  //4th Quadrant (270-360)  range 300(60)-360(0)
+            }
+        }
 
         /////////////////////////////////////////////////////////////////////////////////////////
         // Detecting whether parent looking at child
@@ -394,8 +442,6 @@ public class FeatureDetector extends Detector<Face> {
         /*Assigning thresholds and checking whether the looking direction(globalTheta) falls in
         * between the thresholds*/
         heightChange = Data.Child.faceHeight*Data.FACE_HEIGHT_FACTOR;
-        globalTheta = Data.Parent.globalTheta;
-        rayLength = Data.Parent.dirLength;
         thetaThreshold1 = Math.atan2(Data.Child.y-heightChange-Data.Parent.y , Data.Child.x-Data.Parent.x);
         thetaThreshold2 = Math.atan2(Data.Child.y+heightChange-Data.Parent.y , Data.Child.x-Data.Parent.x);
         thetaThreshold1 = Math.toDegrees(thetaThreshold1);
@@ -410,16 +456,16 @@ public class FeatureDetector extends Detector<Face> {
             thetaThresholdLow = thetaThreshold1;
         }
 
-        if(rayLength>Data.DIR_LENGTH_THRESHOLD_X_LOOKING_AT_Y){
+        if(parentAbsY>Data.DIR_LENGTH_THRESHOLD_X_LOOKING_AT_Y){
             //if the two thresholds fall in first and fourth quadrants
             if(thetaThresholdHigh>270 && thetaThresholdLow<90){
-                if(globalTheta>thetaThresholdHigh && globalTheta<thetaThresholdLow){
+                if(parentTheta>thetaThresholdHigh && parentTheta<thetaThresholdLow){
                     isParentLookingAtChild = 1;
                 }
             }
             //other cases
             else{
-                if(globalTheta>thetaThresholdLow && globalTheta<thetaThresholdHigh){
+                if(parentTheta>thetaThresholdLow && parentTheta<thetaThresholdHigh){
                     isParentLookingAtChild = 1;
                 }
             }
@@ -434,8 +480,6 @@ public class FeatureDetector extends Detector<Face> {
          /*Assigning thresholds and checking whether the looking direction(globalTheta) falls in
         * between the thresholds*/
         heightChange = Data.Parent.faceHeight*Data.FACE_HEIGHT_FACTOR;
-        globalTheta = Data.Child.globalTheta;
-        rayLength = Data.Child.dirLength;
         thetaThreshold1 = Math.atan2(Data.Parent.y-heightChange-Data.Child.y , Data.Parent.x-Data.Child.x);
         thetaThreshold2 = Math.atan2(Data.Parent.y+heightChange-Data.Child.y , Data.Parent.x-Data.Child.x);
         thetaThreshold1 = Math.toDegrees(thetaThreshold1);
@@ -450,16 +494,16 @@ public class FeatureDetector extends Detector<Face> {
             thetaThresholdLow = thetaThreshold1;
         }
 
-        if(rayLength>Data.DIR_LENGTH_THRESHOLD_X_LOOKING_AT_Y){
+        if(childAbsY>Data.DIR_LENGTH_THRESHOLD_X_LOOKING_AT_Y){
             //if the two thresholds fall in first and fourth quadrants
             if(thetaThresholdHigh>270 && thetaThresholdLow<90){
-                if(globalTheta>thetaThresholdHigh && globalTheta<thetaThresholdLow){
+                if(childTheta>thetaThresholdHigh && childTheta<thetaThresholdLow){
                     isChildLookingAtParent = 1;
                 }
             }
             //other cases
             else{
-                if(globalTheta>thetaThresholdLow && globalTheta<thetaThresholdHigh){
+                if(childTheta>thetaThresholdLow && childTheta<thetaThresholdHigh){
                     isChildLookingAtParent = 1;
                 }
             }
@@ -487,7 +531,7 @@ public class FeatureDetector extends Detector<Face> {
 
         /////////////////////////////////////////////////////////////////////////////////////////
         // Checking for joint attention
-        float dirLengthSum = Data.Parent.dirLength+Data.Child.dirLength;
+        float dirLengthSum = parentAbsY+childAbsY;
         if(isChildLookingAtParent==0 && isParentLookingAtChild==0 && dirLengthSum > Data.DIR_LENGTH_SUM_THRESHOLD){
             Data.meetX = 0;
             Data.meetY = 0;
@@ -495,8 +539,8 @@ public class FeatureDetector extends Detector<Face> {
             float y1 = Data.Parent.y;
             float x2 = Data.Child.x;
             float y2 = Data.Child.y;
-            double theta1 = Math.toRadians(Data.Parent.globalTheta);
-            double theta2 = Math.toRadians(Data.Child.globalTheta);
+            double theta1 = Math.toRadians(parentTheta);
+            double theta2 = Math.toRadians(childTheta);
 
 
             /*Mathematical calculation to detect whether the looking rays meet within the preview
@@ -508,8 +552,8 @@ public class FeatureDetector extends Detector<Face> {
                 double meetX = x1 + u*Math.cos(theta1);
                 double meetY = y1 + u*Math.sin(theta1);
 
-                if(meetX < Data.previewWidth-cropWidth/2 && meetX > cropWidth/2){
-                    if(meetY < Data.previewHeight-cropHeight/2 && meetY > cropHeight/2){
+                if(meetX < Data.previewWidth){
+                    if(meetY < Data.previewHeight){
                         //Two rays meet within the camera preview.
                         Data.meetX = (float)meetX;
                         Data.meetY = (float)meetY;

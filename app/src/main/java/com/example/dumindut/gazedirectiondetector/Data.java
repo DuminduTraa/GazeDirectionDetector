@@ -73,20 +73,24 @@ public class Data {
         isIdentified = false;
     }
 
-    static void updateParent(int id, float x, float y, float height, float width ){
+    static void updateParent(int id, float x, float y, float height, float width, float eulerZ, float eulerY ){
         Parent.id = id;
         Parent.x = x;
         Parent.y = y;
         Parent.faceHeight = height;
         Parent.faceWidth = width;
+        Parent.eulerZ = eulerZ;
+        Parent.eulerY = eulerY;
     }
 
-    static void updateChild(int id, float x, float y, float height, float width){
+    static void updateChild(int id, float x, float y, float height, float width, float eulerZ, float eulerY){
         Child.id = id;
         Child.x = x;
         Child.y = y;
         Child.faceHeight = height;
         Child.faceWidth = width;
+        Child.eulerZ = eulerZ;
+        Child.eulerY = eulerY;
     }
 
     public static class Parent {
@@ -96,9 +100,8 @@ public class Data {
         public static float faceWidth;
         public static float faceHeight;
 
-        public static float globalTheta;
-        public static float dirLength;
-        public static long lastTime;
+        public static float eulerZ;
+        public static float eulerY;
     }
 
     public static class Child {
@@ -108,8 +111,7 @@ public class Data {
         public static float faceWidth;
         public static float faceHeight;
 
-        public static float globalTheta;
-        public static float dirLength;
-        public static long lastTime;
+        public static float eulerZ;
+        public static float eulerY;
     }
 }

@@ -10,9 +10,10 @@ import java.util.Arrays;
  */
 public class Data {
 
-    public static final String PARENT = "parent";
-    public static final String CHILD = "child";
-    public static final String UNKNOWN = "unknown";
+    public static final String PARENT = "ADULT";
+    public static final String CHILD = "CHILD";
+    public static final String UNKNOWN = "INDETERMINATE";
+    public static final String NONE = "NONE";
 
     ////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////
@@ -23,22 +24,31 @@ public class Data {
 
     public static final float REQUESTED_FRAME_RATE = 30f;
 
+    /*Since Microsoft Face Api and Google Vision Face Api does not return the same coordinates for
+    say the mid point of the face these two thresholds to check whether a face returned my Microsoft
+    Age detection corresponds to which person(Identified by Google face api)*/
     public static final float X_DIF_THRESHOLD = 10.0f;
     public static final float Y_DIF_THRESHOLD = 40.0f;
 
-    public static final int FEATURE_DETECTION_TIME_THRESHOLD = 3000;  //seconds
+    /*Feature detection takes place once per this no of milliseconds*/
+    public static final int FEATURE_DETECTION_TIME_THRESHOLD = 3000;  //milliseconds
 
-    public static final int AGE_DETECTION_FRAME_COUNT_THRESHOLD = 2;  //feature detection frames
+    /*Age detection takes place once per this amount of feature detection frames*/
+    public static final int AGE_DETECTION_FRAME_COUNT_THRESHOLD = 2;//...no of feature detection frames
 
-    public static final int AVERAGING_FRAME_COUNT_THRESHOLD = 5;   //feature detection frames
-    public static final int AVERAGING_WINDOW_LENGTH = 20;    //feature detection frames
+    /*Averaging time*/
+    public static final int AVERAGING_FRAME_COUNT_THRESHOLD = 5;//...no of feature detection frames
+    public static final int AVERAGING_WINDOW_LENGTH = 20;//...no of feature detection frames
 
-    public static final int TIME_THRESHOLD_FOR_GLOBAL_THETA = FEATURE_DETECTION_TIME_THRESHOLD/2;
 
     // Settings for features
     public static final float FACE_HEIGHT_FACTOR = 0.25f;  // for X looking at y thresholds
     public static final float CROP_DIMENSION_FACTOR = 2.0f; //crop width/height factor
     public static final float PARENT_ELEVATION_FACTOR = 0.5f; // for parent child same eye level check
+
+    /*Euler Y tolerances for joint attention and x looking at y*/
+    public static final float DIR_LENGTH_THRESHOLD_X_LOOKING_AT_Y = 15;
+    public static final float DIR_LENGTH_SUM_THRESHOLD = 30;
 
     private static final String[] TAGS = {"colored","dog","animal","stuffed","bear","teddy","toy",
             "colorful","decorated","plastic","sign"};
@@ -56,25 +66,30 @@ public class Data {
     public static float meetY = 0;
 
     public static boolean isIdentified = false;
+    public static boolean isOnlyOneFace = false;
 
     static void clearData(){
         isIdentified = false;
     }
 
-    static void updateParent(int id, float x, float y, float height, float width ){
+    static void updateParent(int id, float x, float y, float height, float width, float eulerZ, float eulerY ){
         Parent.id = id;
         Parent.x = x;
         Parent.y = y;
         Parent.faceHeight = height;
         Parent.faceWidth = width;
+        Parent.eulerZ = eulerZ;
+        Parent.eulerY = eulerY;
     }
 
-    static void updateChild(int id, float x, float y, float height, float width){
+    static void updateChild(int id, float x, float y, float height, float width, float eulerZ, float eulerY){
         Child.id = id;
         Child.x = x;
         Child.y = y;
         Child.faceHeight = height;
         Child.faceWidth = width;
+        Child.eulerZ = eulerZ;
+        Child.eulerY = eulerY;
     }
 
     public static class Parent {
@@ -84,8 +99,8 @@ public class Data {
         public static float faceWidth;
         public static float faceHeight;
 
-        public static float globalTheta;
-        public static long lastTime;
+        public static float eulerZ;
+        public static float eulerY;
     }
 
     public static class Child {
@@ -95,7 +110,7 @@ public class Data {
         public static float faceWidth;
         public static float faceHeight;
 
-        public static float globalTheta;
-        public static long lastTime;
+        public static float eulerZ;
+        public static float eulerY;
     }
 }

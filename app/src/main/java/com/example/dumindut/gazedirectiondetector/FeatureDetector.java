@@ -55,13 +55,14 @@ public class FeatureDetector extends Detector<Face> {
     private int count = 1;
     private boolean startFeedbacking = false;
 
-    private int isParentLookingAtChild = 0;
-    private int isChildLookingAtParent = 0;
-    private int hasEyeContact = 0;
-    private int areBothAtSameEyeLevel = 0;
-    private int hasJointAttention = 0;
+    private int isParentLookingAtChild = -1;
+    private int isChildLookingAtParent = -1;
+    private int hasEyeContact = -1;
+    private int areBothAtSameEyeLevel = -1;
+    private int hasJointAttention = -1;
     private float[] parentEmotionVec = new float[8];
     private float[] childEmotionVec = new float[8];
+    private float[] unknownEmotionVec = new float[8];
 
     CircularFifoQueue<Integer> parentLookingAtChildBuffer = new CircularFifoQueue<Integer>(Data.AVERAGING_WINDOW_LENGTH);
     CircularFifoQueue<Integer> childLookingAtParentBuffer = new CircularFifoQueue<Integer>(Data.AVERAGING_WINDOW_LENGTH);
@@ -108,29 +109,26 @@ public class FeatureDetector extends Detector<Face> {
                 }
                 recognizeFeatures();
                 doRecognizeEmotions();
-
                 //flagging for feedback and start feed backing with the 2 min buffer get filled.
-                if(count%Data.AVERAGING_FRAME_COUNT_THRESHOLD == 0 && startFeedbacking) {
-                    doFeedback();
-                    count = 0;
-                }
-
-                if(count%(Data.AVERAGING_WINDOW_LENGTH)==0 && !startFeedbacking){
-                    doFeedback();
-                    startFeedbacking = true;
-                    count = 0;
-                }
-
+//                if(count%Data.AVERAGING_FRAME_COUNT_THRESHOLD == 0 && startFeedbacking) {
+//                    doFeedback();
+//                    count = 0;
+//                }
+//
+//                if(count%(Data.AVERAGING_WINDOW_LENGTH)==0 && !startFeedbacking){
+//                    doFeedback();
+//                    startFeedbacking = true;
+//                    count = 0;
+//                }
                 count++;
             }
-            //Differentiating between parent and child using age detection for the first time
             else{
                 lastTime = currentTimeMillis();
                 outputArray = getByteArray(frame);
                 doDifferentiate();
+                doRecognizeEmotions();
             }
         }
-
         return mDelegate.detect(frame);
     }
 
@@ -181,7 +179,7 @@ public class FeatureDetector extends Detector<Face> {
         }
 
         /**
-         * On succesfull completion of calling client and with the results produced by client
+         * On successful completion of calling client and with the results produced by client
          * starting the differentiating task and storing parent and child information on Data class
          * to be shared with Google's vision face processing.
          * @param result resulting array containing face information
@@ -193,11 +191,10 @@ public class FeatureDetector extends Detector<Face> {
                 Log.e("Age detection", e.getMessage());
                 this.e = null;
             }
-            else if (result.length!=2) {
-                resultTextView.setText("Could not find two faces for age detection:(");
-                Log.e("Age detection", "Could not find two faces");
+            else if (result.length==1 && !Data.isIdentified) {
+                Data.isOnlyOneFace=true;
             }
-            else {
+            else if (result.length==2){
                 double x1 = result[0].faceRectangle.left + result[0].faceRectangle.width/2;
                 double x2 = result[1].faceRectangle.left + result[1].faceRectangle.width/2;
                 double y1 = result[0].faceRectangle.top + result[0].faceRectangle.height/2;
@@ -230,6 +227,11 @@ public class FeatureDetector extends Detector<Face> {
                     Data.Child.faceHeight = height1;
                 }
                 Data.isIdentified=true;
+                Data.isOnlyOneFace=false;
+            }
+            else{
+                resultTextView.setText("Could not find faces for age detection:(");
+                Log.e("Age detection", "Could not find faces");
             }
         }
     }
@@ -287,11 +289,22 @@ public class FeatureDetector extends Detector<Face> {
                 Log.e("Emotion detection ", e.getMessage());
                 this.e = null;
             }
-            else if (result.size() != 2) {
-                resultTextView.setText("Could not find two faces for emotion detection :(");
-                Log.e("Emotion detection ", " Could not find two faces'");
+            else if (result.size() == 1 && Data.isOnlyOneFace) {
+                float[] emotionVec = new float[8];
+                RecognizeResult r = result.get(0);
+
+                emotionVec[0] = (float)r.scores.anger;
+                emotionVec[1] = (float)r.scores.contempt;
+                emotionVec[2] = (float)r.scores.disgust;
+                emotionVec[3] = (float)r.scores.fear;
+                emotionVec[4] = (float)r.scores.happiness;
+                emotionVec[5] = (float)r.scores.neutral;
+                emotionVec[6] = (float)r.scores.sadness;
+                emotionVec[7] = (float)r.scores.surprise;
+
+                unknownEmotionVec = emotionVec;
             }
-            else {
+            else if (result.size() == 2 && Data.isIdentified) {
                 for (RecognizeResult r : result) {
                     float x = r.faceRectangle.left + r.faceRectangle.width/2;
                     float y = r.faceRectangle.top + r.faceRectangle.height/2;
@@ -325,8 +338,13 @@ public class FeatureDetector extends Detector<Face> {
                     }
                     else{}
                 }
-                showResults(resultTextView);
+
             }
+            else{
+                resultTextView.setText("Could not find two faces for emotion detection :(");
+                Log.e("Emotion detection ", " Could not find two faces'");
+            }
+            showResults(resultTextView);
         }
     }
 
@@ -362,11 +380,61 @@ public class FeatureDetector extends Detector<Face> {
 
         double thetaThreshold1;   //to y-faceheight*factor
         double thetaThreshold2;     //to y+faceheight*factor
-        double thetaThresholdHigh;
+        double thetaThresholdHigh;   //whichever higher among the above two
         double thetaThresholdLow;
-        float globalTheta;
+
+        float parentTheta;
+        float childTheta;
+
+        float parentEulerZ = Data.Parent.eulerZ;
+        float parentEulerY = Data.Parent.eulerY;
+        float childEulerZ = Data.Child.eulerZ;
+        float childEulerY = Data.Child.eulerY;
+
+        float parentAbsZ = Math.abs(parentEulerZ);
+        float childAbsZ = Math.abs(childEulerZ);
+        float parentAbsY = Math.abs(parentEulerY);
+        float childAbsY = Math.abs(childEulerY);
+
         float heightChange;
 
+        /*calculating looking directions of parent and child*/
+
+        //All the details according to the person, not the camera.
+        //Defining global theta(0-360) taking into consideration isThetaPositive and IsLeft
+        if(parentEulerZ<0){
+            if(parentEulerY<0){
+                parentTheta = 180 + parentAbsZ; // Third Quadrant (180-270) range 180(0)-240(60)
+            }
+            else{
+                parentTheta = parentAbsZ; // First Quadrant (0-90) range 0(0)-60(60)
+            }
+        }
+        else{
+            if(parentEulerY<0){
+                parentTheta =  180 - parentAbsZ;  // Second Quadrant(90-180) range 120(60)-180(0)
+            }
+            else{
+                parentTheta = 360 - parentAbsZ;  //4th Quadrant (270-360)  range 300(60)-360(0)
+            }
+        }
+
+        if(childEulerZ<0){
+            if(childEulerY<0){
+                childTheta = 180 + childAbsZ; // Third Quadrant (180-270) range 180(0)-240(60)
+            }
+            else{
+                childTheta = childAbsZ; // First Quadrant (0-90) range 0(0)-60(60)
+            }
+        }
+        else{
+            if(childEulerY<0){
+                childTheta =  180 - childAbsZ;  // Second Quadrant(90-180) range 120(60)-180(0)
+            }
+            else{
+                childTheta = 360 - childAbsZ;  //4th Quadrant (270-360)  range 300(60)-360(0)
+            }
+        }
 
         /////////////////////////////////////////////////////////////////////////////////////////
         // Detecting whether parent looking at child
@@ -374,7 +442,6 @@ public class FeatureDetector extends Detector<Face> {
         /*Assigning thresholds and checking whether the looking direction(globalTheta) falls in
         * between the thresholds*/
         heightChange = Data.Child.faceHeight*Data.FACE_HEIGHT_FACTOR;
-        globalTheta = Data.Parent.globalTheta;
         thetaThreshold1 = Math.atan2(Data.Child.y-heightChange-Data.Parent.y , Data.Child.x-Data.Parent.x);
         thetaThreshold2 = Math.atan2(Data.Child.y+heightChange-Data.Parent.y , Data.Child.x-Data.Parent.x);
         thetaThreshold1 = Math.toDegrees(thetaThreshold1);
@@ -388,18 +455,22 @@ public class FeatureDetector extends Detector<Face> {
             thetaThresholdHigh = thetaThreshold2;
             thetaThresholdLow = thetaThreshold1;
         }
-        //if the two thresholds fall in first and fourth quadrants
-        if(thetaThresholdHigh>270 && thetaThresholdLow<90){
-            if(globalTheta>thetaThresholdHigh && globalTheta<thetaThresholdLow){
-                isParentLookingAtChild = 1;
+
+        if(parentAbsY>Data.DIR_LENGTH_THRESHOLD_X_LOOKING_AT_Y){
+            //if the two thresholds fall in first and fourth quadrants
+            if(thetaThresholdHigh>270 && thetaThresholdLow<90){
+                if(parentTheta>thetaThresholdHigh && parentTheta<thetaThresholdLow){
+                    isParentLookingAtChild = 1;
+                }
+            }
+            //other cases
+            else{
+                if(parentTheta>thetaThresholdLow && parentTheta<thetaThresholdHigh){
+                    isParentLookingAtChild = 1;
+                }
             }
         }
-        //other cases
-        else{
-            if(globalTheta>thetaThresholdLow && globalTheta<thetaThresholdHigh){
-                isParentLookingAtChild = 1;
-            }
-        }
+
         //Updating the buffer
         parentLookingAtChildBuffer.add(isParentLookingAtChild);
 
@@ -409,7 +480,6 @@ public class FeatureDetector extends Detector<Face> {
          /*Assigning thresholds and checking whether the looking direction(globalTheta) falls in
         * between the thresholds*/
         heightChange = Data.Parent.faceHeight*Data.FACE_HEIGHT_FACTOR;
-        globalTheta = Data.Child.globalTheta;
         thetaThreshold1 = Math.atan2(Data.Parent.y-heightChange-Data.Child.y , Data.Parent.x-Data.Child.x);
         thetaThreshold2 = Math.atan2(Data.Parent.y+heightChange-Data.Child.y , Data.Parent.x-Data.Child.x);
         thetaThreshold1 = Math.toDegrees(thetaThreshold1);
@@ -423,18 +493,22 @@ public class FeatureDetector extends Detector<Face> {
             thetaThresholdHigh = thetaThreshold2;
             thetaThresholdLow = thetaThreshold1;
         }
-        //if the two thresholds fall in first and fourth quadrants
-        if(thetaThresholdHigh>270 && thetaThresholdLow<90){
-            if(globalTheta>thetaThresholdHigh && globalTheta<thetaThresholdLow){
-                isChildLookingAtParent = 1;
+
+        if(childAbsY>Data.DIR_LENGTH_THRESHOLD_X_LOOKING_AT_Y){
+            //if the two thresholds fall in first and fourth quadrants
+            if(thetaThresholdHigh>270 && thetaThresholdLow<90){
+                if(childTheta>thetaThresholdHigh && childTheta<thetaThresholdLow){
+                    isChildLookingAtParent = 1;
+                }
+            }
+            //other cases
+            else{
+                if(childTheta>thetaThresholdLow && childTheta<thetaThresholdHigh){
+                    isChildLookingAtParent = 1;
+                }
             }
         }
-        //other cases
-        else{
-            if(globalTheta>thetaThresholdLow && globalTheta<thetaThresholdHigh){
-                isChildLookingAtParent = 1;
-            }
-        }
+
         //Updating the buffer
         childLookingAtParentBuffer.add(isChildLookingAtParent);
 
@@ -457,15 +531,16 @@ public class FeatureDetector extends Detector<Face> {
 
         /////////////////////////////////////////////////////////////////////////////////////////
         // Checking for joint attention
-        if(isChildLookingAtParent==0 && isParentLookingAtChild==0){
+        float dirLengthSum = parentAbsY+childAbsY;
+        if(isChildLookingAtParent==0 && isParentLookingAtChild==0 && dirLengthSum > Data.DIR_LENGTH_SUM_THRESHOLD){
             Data.meetX = 0;
             Data.meetY = 0;
             float x1 = Data.Parent.x;
             float y1 = Data.Parent.y;
             float x2 = Data.Child.x;
             float y2 = Data.Child.y;
-            double theta1 = Math.toRadians(Data.Parent.globalTheta);
-            double theta2 = Math.toRadians(Data.Child.globalTheta);
+            double theta1 = Math.toRadians(parentTheta);
+            double theta2 = Math.toRadians(childTheta);
 
 
             /*Mathematical calculation to detect whether the looking rays meet within the preview
@@ -477,13 +552,15 @@ public class FeatureDetector extends Detector<Face> {
                 double meetX = x1 + u*Math.cos(theta1);
                 double meetY = y1 + u*Math.sin(theta1);
 
-                if(meetX < Data.previewWidth-cropWidth/2 && meetX > cropWidth/2){
-                    if(meetY < Data.previewHeight-cropHeight/2 && meetY > cropHeight/2){
+                if(meetX < Data.previewWidth){
+                    if(meetY < Data.previewHeight){
                         //Two rays meet within the camera preview.
                         Data.meetX = (float)meetX;
                         Data.meetY = (float)meetY;
                         //Describing the suspicious area with Microsoft Cognitive Services Object detection
-                        doDescribe();
+                        //doDescribe();
+                        hasJointAttention=1;
+                        jointAttentiontBuffer.add(1);
                     }
                     else{jointAttentiontBuffer.add(0);}
                 }
@@ -594,13 +671,41 @@ public class FeatureDetector extends Detector<Face> {
         logText += areBothAtSameEyeLevel + ", ";
         logText += isParentLookingAtChild + ", ";
         logText += isChildLookingAtParent + ", ";
-        for(int i=0; i<8; i++){
-            logText +=String.format("%.10f", parentEmotionVec[i])+ ", ";
+
+        if(Data.isIdentified){
+            logText += Data.PARENT + ", ";
+            for(int i=0; i<8; i++){
+                logText +=String.format("%.10f", parentEmotionVec[i])+ ", ";
+            }
+            logText += Data.CHILD + ", ";
+            for(int i=0; i<7; i++){
+                logText += String.format("%.10f", childEmotionVec[i])+ ", ";
+            }
+            logText += String.format("%.10f", childEmotionVec[7]);
         }
-        for(int i=0; i<7; i++){
-            logText += String.format("%.10f", childEmotionVec[i])+ ", ";
+        else if (Data.isOnlyOneFace){
+            logText += Data.UNKNOWN + ", ";
+            for(int i=0; i<8; i++){
+                logText +=String.format("%.10f", unknownEmotionVec[i])+ ", ";
+            }
+            logText += Data.NONE + ", ";
+            for(int i=0; i<7; i++){
+                logText += String.format("%.10f", 0.0)+ ", ";
+            }
+            logText += String.format("%.10f", 0.0);
         }
-        logText += String.format("%.10f", childEmotionVec[7]);
+        else{
+            logText += Data.NONE + ", ";
+            for(int i=0; i<8; i++){
+                logText +=String.format("%.10f", 0.0)+ ", ";
+            }
+            logText += Data.NONE + ", ";
+            for(int i=0; i<7; i++){
+                logText += String.format("%.10f", 0.0)+ ", ";
+            }
+            logText += String.format("%.10f", 0.0);
+        }
+
 
         try{
             Data.txtFileWriter.append(System.lineSeparator());
@@ -618,9 +723,16 @@ public class FeatureDetector extends Detector<Face> {
         resultText += "\nEye Contact : " + hasEyeContact;
         resultText += "\nBoth at same eye level : " + areBothAtSameEyeLevel;
         resultText += "\nJoint Attention : " + hasJointAttention;
-        resultText += "\nParent Emotion Vec : " + Arrays.toString(parentEmotionVec);
-        resultText += "\nChild Emotion Vec : " + Arrays.toString(childEmotionVec);
-
+        if(Data.isIdentified){
+            resultText += "\nParent Emotion Vec : " + Arrays.toString(parentEmotionVec);
+            resultText += "\nChild Emotion Vec : " + Arrays.toString(childEmotionVec);
+        }
+        else if (Data.isOnlyOneFace){
+            resultText += "\nUndeterminate Emotion Vec : " + Arrays.toString(unknownEmotionVec);
+        }
+        else{
+            resultText += "\nNO Emotions";
+        }
         textView.setText(resultText);
         Log.d("  ", resultText);
     }

@@ -31,7 +31,7 @@ public class Data {
     public static final float Y_DIF_THRESHOLD = 40.0f;
 
     /*Feature detection takes place once per this no of milliseconds*/
-    public static final int FEATURE_DETECTION_TIME_THRESHOLD = 3000;  //seconds
+    public static final int FEATURE_DETECTION_TIME_THRESHOLD = 3000;  //milliseconds
 
     /*Age detection takes place once per this amount of feature detection frames*/
     public static final int AGE_DETECTION_FRAME_COUNT_THRESHOLD = 2;//...no of feature detection frames
@@ -40,7 +40,6 @@ public class Data {
     public static final int AVERAGING_FRAME_COUNT_THRESHOLD = 5;//...no of feature detection frames
     public static final int AVERAGING_WINDOW_LENGTH = 20;//...no of feature detection frames
 
-    public static final int TIME_THRESHOLD_FOR_GLOBAL_THETA = FEATURE_DETECTION_TIME_THRESHOLD/5;
 
     // Settings for features
     public static final float FACE_HEIGHT_FACTOR = 0.25f;  // for X looking at y thresholds

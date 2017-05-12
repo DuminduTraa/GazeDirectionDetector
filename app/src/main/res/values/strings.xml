@@ -4,7 +4,7 @@
     <string name="permission_camera_rationale">Access to the camera is needed for detection</string>
     <string name="no_camera_permission">This application cannot run because it does not have the camera permission.  The application will now exit.</string>
     <string name="low_storage_error">Face detector dependencies cannot be downloaded due to low device storage</string>
-    <string name="emotion_subscription_key">bd8b3dd3f73746749416a96dcb19f40d</string>
-    <string name="face_subscription_key">9ac84d1d007c4b428677015adf70d73d</string>
+    <string name="emotion_subscription_key">2e3227cc6a9040c09044800a83a00271</string>
+    <string name="face_subscription_key">838cd58532eb48cb973220042cc5c3ea</string>
     <string name="vision_subscription_key">c4670f1620d14d7985db3ffca15752b6</string>
 </resources>

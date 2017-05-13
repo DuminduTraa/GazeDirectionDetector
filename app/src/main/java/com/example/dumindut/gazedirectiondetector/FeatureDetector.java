@@ -53,7 +53,6 @@ public class FeatureDetector extends Detector<Face> {
     private long startTime;
     private long thisFrameTime;
     private int count = 1;
-    private boolean startFeedbacking = false;
 
     private int isParentLookingAtChild = -1;
     private int isChildLookingAtParent = -1;
@@ -64,17 +63,6 @@ public class FeatureDetector extends Detector<Face> {
     private float[] childEmotionVec = new float[8];
     private float[] unknownEmotionVec = new float[8];
 
-    CircularFifoQueue<Integer> parentLookingAtChildBuffer = new CircularFifoQueue<Integer>(Data.AVERAGING_WINDOW_LENGTH);
-    CircularFifoQueue<Integer> childLookingAtParentBuffer = new CircularFifoQueue<Integer>(Data.AVERAGING_WINDOW_LENGTH);
-    CircularFifoQueue<Integer> eyeContactBuffer = new CircularFifoQueue<Integer>(Data.AVERAGING_WINDOW_LENGTH);
-    CircularFifoQueue<Integer> bothAtSameEyeLevelBuffer = new CircularFifoQueue<Integer>(Data.AVERAGING_WINDOW_LENGTH);
-    CircularFifoQueue<Integer> jointAttentiontBuffer = new CircularFifoQueue<Integer>(Data.AVERAGING_WINDOW_LENGTH);
-
-    private float[] cumParentEmotionVec = {0,0,0,0,0,0,0,0};
-    private float[] cumChildEmotionVec = {0,0,0,0,0,0,0,0};
-
-    private float cropWidth = Data.Parent.faceWidth*Data.CROP_DIMENSION_FACTOR;
-    private float cropHeight = Data.Parent.faceHeight*Data.CROP_DIMENSION_FACTOR;
 
     FeatureDetector(Detector<Face> delegate, TextView textView, TextView textView2, EmotionServiceRestClient client1,
                     FaceServiceRestClient client2, VisionServiceRestClient client3) {
@@ -101,33 +89,19 @@ public class FeatureDetector extends Detector<Face> {
         //Custom frame processing on the frame once per every threshold seconds approximately
         thisFrameTime = currentTimeMillis();
         if(thisFrameTime-lastTime > Data.FEATURE_DETECTION_TIME_THRESHOLD){
+            lastTime = currentTimeMillis();
+            outputArray = getByteArray(frame);
             if(Data.isIdentified){
-                lastTime = currentTimeMillis();
-                outputArray = getByteArray(frame);
                 if(count%Data.AGE_DETECTION_FRAME_COUNT_THRESHOLD == 0){
                     doDifferentiate();
                 }
                 recognizeFeatures();
-                doRecognizeEmotions();
-                //flagging for feedback and start feed backing with the 2 min buffer get filled.
-//                if(count%Data.AVERAGING_FRAME_COUNT_THRESHOLD == 0 && startFeedbacking) {
-//                    doFeedback();
-//                    count = 0;
-//                }
-//
-//                if(count%(Data.AVERAGING_WINDOW_LENGTH)==0 && !startFeedbacking){
-//                    doFeedback();
-//                    startFeedbacking = true;
-//                    count = 0;
-//                }
                 count++;
             }
             else{
-                lastTime = currentTimeMillis();
-                outputArray = getByteArray(frame);
                 doDifferentiate();
-                doRecognizeEmotions();
             }
+            doRecognizeEmotions();
         }
         return mDelegate.detect(frame);
     }
@@ -319,26 +293,20 @@ public class FeatureDetector extends Detector<Face> {
                     emotionVec[6] = (float)r.scores.sadness;
                     emotionVec[7] = (float)r.scores.surprise;
 
-                    //Checking whether the face corresponds to the parent or the child.
-                    if(Math.abs(x-Data.Parent.x)<Data.X_DIF_THRESHOLD && Math.abs(y-Data.Parent.y)<Data.Y_DIF_THRESHOLD){
+                    float sqrDistanceToParent = Math.abs(x-Data.Parent.x)*Math.abs(x-Data.Parent.x) +
+                            Math.abs(y-Data.Parent.y)*Math.abs(y-Data.Parent.y);
+                    float sqrDistanceToChild = Math.abs(x-Data.Child.x)*Math.abs(x-Data.Child.x) +
+                            Math.abs(y-Data.Child.y)*Math.abs(y-Data.Child.y);
+
+                    if(sqrDistanceToParent < sqrDistanceToChild){
                         //Assigning emotion details to parent
                         parentEmotionVec = emotionVec;
-                        for(int i=0; i<8; i++){
-                            float temp = cumParentEmotionVec[i];
-                            cumParentEmotionVec[i] = emotionVec[i] + temp;
-                        }
                     }
-                    else if(Math.abs(x-Data.Child.x)<Data.X_DIF_THRESHOLD && Math.abs(y-Data.Child.y)<Data.Y_DIF_THRESHOLD){
+                    else{
                         //Assigning emotion details to child
                         childEmotionVec = emotionVec;
-                        for(int i=0; i<8; i++){
-                            float temp = cumChildEmotionVec[i];
-                            cumChildEmotionVec[i] = emotionVec[i] + temp;
-                        }
                     }
-                    else{}
                 }
-
             }
             else{
                 resultTextView.setText("Could not find two faces for emotion detection :(");
@@ -471,9 +439,6 @@ public class FeatureDetector extends Detector<Face> {
             }
         }
 
-        //Updating the buffer
-        parentLookingAtChildBuffer.add(isParentLookingAtChild);
-
         ///////////////////////////////////////////////////////////////////////////////////////////
         // Checking whether child looking at parent
 
@@ -509,24 +474,17 @@ public class FeatureDetector extends Detector<Face> {
             }
         }
 
-        //Updating the buffer
-        childLookingAtParentBuffer.add(isChildLookingAtParent);
-
-
         //////////////////////////////////////////////////////////////////////////////////////////
         // Checking for eye contact (Simply taking the logical AND between the above two features)
         if(isChildLookingAtParent==1 && isParentLookingAtChild==1){
             hasEyeContact = 1;
         }
-        eyeContactBuffer.add(hasEyeContact);
 
         //////////////////////////////////////////////////////////////////////////////////////////
         //Checking whether parent ad child at same eye level
         if(Math.abs(Data.Parent.y-Data.Child.y)< Data.Parent.faceHeight*Data.PARENT_ELEVATION_FACTOR){
             areBothAtSameEyeLevel = 1;
         }
-        bothAtSameEyeLevelBuffer.add(areBothAtSameEyeLevel);
-
 
 
         /////////////////////////////////////////////////////////////////////////////////////////
@@ -555,109 +513,14 @@ public class FeatureDetector extends Detector<Face> {
                 if(meetX < Data.previewWidth){
                     if(meetY < Data.previewHeight){
                         //Two rays meet within the camera preview.
-                        Data.meetX = (float)meetX;
-                        Data.meetY = (float)meetY;
-                        //Describing the suspicious area with Microsoft Cognitive Services Object detection
-                        //doDescribe();
                         hasJointAttention=1;
-                        jointAttentiontBuffer.add(1);
-                    }
-                    else{jointAttentiontBuffer.add(0);}
-                }
-                else{jointAttentiontBuffer.add(0);}
-            }
-            else{jointAttentiontBuffer.add(0);}
-        }
-        else{jointAttentiontBuffer.add(0);}
-    }
-
-    /**
-     * Executing object detection task in order to describe the image portion
-     */
-    public void doDescribe() {
-        try {
-            new objectDetectionTask().execute();
-        }
-        catch (Exception e)
-        {
-            resultTextView.setText("Error encountered in object detection " + e.toString());
-            Log.e("Object detection ",e.toString());
-            jointAttentiontBuffer.add(0);
-        }
-    }
-
-    /**
-     * Object Detection task using Microsoft Cognitive Services Computer Vision API
-     */
-    private class objectDetectionTask extends AsyncTask<String, String, AnalysisResult> {
-        // Store error message
-        private Exception e = null;
-        public objectDetectionTask() {}
-
-        /**
-         * Calling the computer vision client and sending the frame data of the cropped area
-         * @param args
-         * @return results of object detection including caption, tags etc.
-         */
-        @Override
-        protected AnalysisResult doInBackground(String... args) {
-            try {
-                float crop_x = Data.meetX-cropWidth/2;
-                float crop_y = Data.meetY-cropHeight/2;
-                float crop_width = cropWidth;
-                float crop_height = cropHeight;
-
-                Bitmap fullBitmap = BitmapFactory.decodeByteArray(outputArray, 0, outputArray.length);
-                Bitmap croppedBitmap = Bitmap.createBitmap(fullBitmap, (int)crop_x, (int)crop_y,
-                        (int)crop_width, (int)crop_height);
-
-                ByteArrayOutputStream output = new ByteArrayOutputStream();
-                croppedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, output);
-                ByteArrayInputStream inputStream = new ByteArrayInputStream(output.toByteArray());
-
-                AnalysisResult result = visionClient.describe(inputStream, 1);  //max candidates = 1
-                return  result;
-
-            } catch (Exception e) {
-                this.e = e;    // Store error
-            }
-            return null;
-        }
-
-        /**
-         * On the completion of producing results with emotion client, checking the resulting tags
-         * to determine whether there is an object
-         * @param result Analyse result containing description of the image
-         */
-        @Override
-        protected void onPostExecute(AnalysisResult result) {
-            super.onPostExecute(result);
-            // Display based on error existence
-            if (e != null) {
-                resultTextView.setText("Error, object detection: " + e.getMessage());
-                Log.e("Object detection ", e.getMessage());
-                jointAttentiontBuffer.add(0);
-                this.e = null;
-            }
-            else {
-                //Checking the resulting tags wth the suspicious tag list
-                ///*********** this list needs to be added with more tags by testing object detction
-                //on test cases.
-                for (String tag: result.description.tags) {
-                    if(Data.TAG_LIST.contains(tag)){
-                        hasJointAttention = 1;
-                        jointAttentiontBuffer.add(1);
-                        break;
                     }
                 }
             }
-            if(hasJointAttention==0){
-                jointAttentiontBuffer.add(0);
-            }
         }
     }
 
-    /**
+        /**
      * Showing current results in the results text view in UI
      * @param textView result text view
      */
@@ -717,7 +580,6 @@ public class FeatureDetector extends Detector<Face> {
             Log.e("Writing to File",e.toString());
         }
 
-
         resultText += "Parent looking at child : " + isParentLookingAtChild;
         resultText += "\nChild looking at parent : " + isChildLookingAtParent;
         resultText += "\nEye Contact : " + hasEyeContact;
@@ -765,74 +627,4 @@ public class FeatureDetector extends Detector<Face> {
         return outputArray;
     }
 
-
-    /**
-     * producing a feedback (currently only averaging results over the 2 min window) after first
-     * 2 minutes, the feedback is provided once in a minute(using past 2 min results in buffers)
-     */
-    public void doFeedback(){
-        new feedbackingTask().execute();
-    }
-
-    /**
-     * AsyncTask to calculate average results, an asyncTask is used for the sake of the simplicity
-     * to use th UI thread(textView) to show feedback(results)
-     */
-    private class feedbackingTask extends AsyncTask<String, String, float[]>{
-        @Override
-        protected float[] doInBackground(String... args){
-            float[] results = new float[5];
-            int timesParentLookedAtChild = 0;
-            int timesChildLookedAtParent = 0;
-            int timesOfEyeContact = 0;
-            int timesOfSameEyeLevel = 0;
-            int timesOfJointAttention = 0;
-            float divider = (float)Data.AVERAGING_WINDOW_LENGTH;
-
-            for(int i=0; i<Data.AVERAGING_WINDOW_LENGTH; i++){
-                timesParentLookedAtChild += parentLookingAtChildBuffer.get(i);
-                timesChildLookedAtParent += childLookingAtParentBuffer.get(i);
-                timesOfEyeContact += eyeContactBuffer.get(i);
-                timesOfSameEyeLevel += bothAtSameEyeLevelBuffer.get(i);
-                timesOfJointAttention += jointAttentiontBuffer.get(i);
-            }
-
-            results[0] = timesParentLookedAtChild*100/divider;
-            results[1] = timesChildLookedAtParent*100/divider;
-            results[2] = timesOfEyeContact*100/divider;
-            results[3] = timesOfSameEyeLevel*100/divider;
-            results[4] = timesOfJointAttention*100/divider;
-
-            return results;
-        }
-
-        /**
-         * Averaging emotions over 2 min(only each emotion) and showing final results in UI thread
-         * @param result
-         */
-        @Override
-        protected void onPostExecute(float[] result){
-            super.onPostExecute(result);
-
-            float[] avgParentEmotionVec = new float[8];
-            float[] avgChildEmotionVec = new float[8];
-            for(int i=0; i<8; i++){
-                avgChildEmotionVec[i] = cumChildEmotionVec[i]/(Data.AVERAGING_WINDOW_LENGTH);
-                avgParentEmotionVec[i] = cumParentEmotionVec[i]/(Data.AVERAGING_WINDOW_LENGTH);
-            }
-
-            String resultText = "\n";
-
-            resultText += "Time proportion parent spent looking at child : " + result[0];
-            resultText += "\nTime proportion child spent looking at parent : " + result[1] ;
-            resultText += "\nTime proportion on eye Contact : " + result[2] ;
-            resultText += "\nTime proportion on parent child same ete level : " + result[3] ;
-            resultText += "\nTime proportion spent on joint Attention : " + result[4];
-            resultText += "\nAverage Parent Emotion Vec : " + Arrays.toString(avgParentEmotionVec);
-            resultText += "\nAverage child Emotion Vec : " + Arrays.toString(avgChildEmotionVec);
-
-            feedbackTextView.setText(resultText);
-            Log.d("FEEDBACK  : \n", resultText);
-        }
-    }
 }

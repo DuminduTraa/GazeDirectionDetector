@@ -19,16 +19,16 @@ public class Data {
     ////////////////////////////////////////////////////////////////////////////////////////////
     //Settings used in the applications (Thresholds and specific constants)
 
-    public static final int PREVIEW_WIDTH = 640;
-    public static final int PREVIEW_HEIGHT = 480;
+    public static final int PREVIEW_WIDTH = 1024;
+    public static final int PREVIEW_HEIGHT = 768;
 
     public static final float REQUESTED_FRAME_RATE = 30f;
 
     /*Feature detection takes place once per this no of milliseconds*/
-    public static final int FEATURE_DETECTION_TIME_THRESHOLD = 3000;  //milliseconds
+    public static final int FEATURE_DETECTION_TIME_THRESHOLD = 2000;  //milliseconds
 
     /*Age detection takes place once per this amount of feature detection frames*/
-    public static final int AGE_DETECTION_FRAME_COUNT_THRESHOLD = 2;//...no of feature detection frames
+    public static final int AGE_DETECTION_FRAME_COUNT_THRESHOLD = 3;//...no of feature detection frames
 
 
     // Settings for features

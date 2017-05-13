@@ -18,6 +18,7 @@ import com.microsoft.projectoxford.emotion.EmotionServiceRestClient;
 import com.microsoft.projectoxford.emotion.contract.RecognizeResult;
 import com.microsoft.projectoxford.face.FaceServiceClient;
 import com.microsoft.projectoxford.face.FaceServiceRestClient;
+import com.microsoft.projectoxford.face.contract.Emotion;
 import com.microsoft.projectoxford.vision.VisionServiceRestClient;
 import com.microsoft.projectoxford.vision.contract.AnalysisResult;
 
@@ -92,16 +93,9 @@ public class FeatureDetector extends Detector<Face> {
             lastTime = currentTimeMillis();
             outputArray = getByteArray(frame);
             if(Data.isIdentified){
-                if(count%Data.AGE_DETECTION_FRAME_COUNT_THRESHOLD == 0){
-                    doDifferentiate();
-                }
                 recognizeFeatures();
-                count++;
             }
-            else{
-                doDifferentiate();
-            }
-            doRecognizeEmotions();
+            doDifferentiate();
         }
         return mDelegate.detect(frame);
     }
@@ -145,7 +139,8 @@ public class FeatureDetector extends Detector<Face> {
                 ByteArrayInputStream inputStream = new ByteArrayInputStream(outputArray);
                 return faceClient.detect(inputStream, false, false,
                         new FaceServiceClient.FaceAttributeType[] {
-                                FaceServiceClient.FaceAttributeType.Age,});
+                                FaceServiceClient.FaceAttributeType.Age,
+                                FaceServiceClient.FaceAttributeType.Emotion});
             } catch (Exception e) {
                 this.e = e;
             }
@@ -161,12 +156,28 @@ public class FeatureDetector extends Detector<Face> {
         @Override
         protected void onPostExecute(com.microsoft.projectoxford.face.contract.Face[] result) {
             if (e != null) {
-                resultTextView.setText("Error, age detection: " + e.getMessage());
+                resultTextView.setText("Error, Face detection: " + e.getMessage());
                 Log.e("Age detection", e.getMessage());
                 this.e = null;
             }
             else if (result.length==1 && !Data.isIdentified) {
                 Data.isOnlyOneFace=true;
+
+                float[] emotionVec = new float[8];
+                Emotion thisEmotion = result[0].faceAttributes.emotion;
+
+
+                emotionVec[0] = (float)thisEmotion.anger;
+                emotionVec[1] = (float)thisEmotion.contempt;
+                emotionVec[2] = (float)thisEmotion.disgust;
+                emotionVec[3] = (float)thisEmotion.fear;
+                emotionVec[4] = (float)thisEmotion.happiness;
+                emotionVec[5] = (float)thisEmotion.neutral;
+                emotionVec[6] = (float)thisEmotion.sadness;
+                emotionVec[7] = (float)thisEmotion.surprise;
+
+                unknownEmotionVec = emotionVec;
+
             }
             else if (result.length==2){
                 double x1 = result[0].faceRectangle.left + result[0].faceRectangle.width/2;
@@ -189,6 +200,30 @@ public class FeatureDetector extends Detector<Face> {
                     Data.Child.y = (float)y2;
                     Data.Child.faceWidth = width2;
                     Data.Child.faceHeight = height2;
+
+                    float[] emotionVec = new float[8];
+                    Emotion thisEmotion = result[0].faceAttributes.emotion;
+                    emotionVec[0] = (float)thisEmotion.anger;
+                    emotionVec[1] = (float)thisEmotion.contempt;
+                    emotionVec[2] = (float)thisEmotion.disgust;
+                    emotionVec[3] = (float)thisEmotion.fear;
+                    emotionVec[4] = (float)thisEmotion.happiness;
+                    emotionVec[5] = (float)thisEmotion.neutral;
+                    emotionVec[6] = (float)thisEmotion.sadness;
+                    emotionVec[7] = (float)thisEmotion.surprise;
+                    parentEmotionVec = emotionVec;
+
+                    emotionVec = new float[8];
+                    thisEmotion = result[1].faceAttributes.emotion;
+                    emotionVec[0] = (float)thisEmotion.anger;
+                    emotionVec[1] = (float)thisEmotion.contempt;
+                    emotionVec[2] = (float)thisEmotion.disgust;
+                    emotionVec[3] = (float)thisEmotion.fear;
+                    emotionVec[4] = (float)thisEmotion.happiness;
+                    emotionVec[5] = (float)thisEmotion.neutral;
+                    emotionVec[6] = (float)thisEmotion.sadness;
+                    emotionVec[7] = (float)thisEmotion.surprise;
+                    childEmotionVec = emotionVec;
                 }
                 else{
                     Data.Parent.x = (float)x2;
@@ -199,118 +234,37 @@ public class FeatureDetector extends Detector<Face> {
                     Data.Child.y = (float)y1;
                     Data.Child.faceWidth = width1;
                     Data.Child.faceHeight = height1;
+
+                    float[] emotionVec = new float[8];
+                    Emotion thisEmotion = result[0].faceAttributes.emotion;
+                    emotionVec[0] = (float)thisEmotion.anger;
+                    emotionVec[1] = (float)thisEmotion.contempt;
+                    emotionVec[2] = (float)thisEmotion.disgust;
+                    emotionVec[3] = (float)thisEmotion.fear;
+                    emotionVec[4] = (float)thisEmotion.happiness;
+                    emotionVec[5] = (float)thisEmotion.neutral;
+                    emotionVec[6] = (float)thisEmotion.sadness;
+                    emotionVec[7] = (float)thisEmotion.surprise;
+                    childEmotionVec = emotionVec;
+
+                    emotionVec = new float[8];
+                    thisEmotion = result[1].faceAttributes.emotion;
+                    emotionVec[0] = (float)thisEmotion.anger;
+                    emotionVec[1] = (float)thisEmotion.contempt;
+                    emotionVec[2] = (float)thisEmotion.disgust;
+                    emotionVec[3] = (float)thisEmotion.fear;
+                    emotionVec[4] = (float)thisEmotion.happiness;
+                    emotionVec[5] = (float)thisEmotion.neutral;
+                    emotionVec[6] = (float)thisEmotion.sadness;
+                    emotionVec[7] = (float)thisEmotion.surprise;
+                    parentEmotionVec = emotionVec;
                 }
                 Data.isIdentified=true;
                 Data.isOnlyOneFace=false;
             }
             else{
-                resultTextView.setText("Could not find faces for age detection:(");
-                Log.e("Age detection", "Could not find faces");
-            }
-        }
-    }
-
-    /**
-     * Executing emotion recognition task
-     */
-    public void doRecognizeEmotions() {
-        // Do emotion detection using auto-detected faces.
-        try {
-            new emotionDetectionTask().execute();
-        }
-        catch (Exception e) {
-            resultTextView.setText("Error encountered in emotion detection : " + e.toString());
-            Log.e("Emotion detection ",e.toString());
-        }
-    }
-
-    /**
-     * Emotion detection task using Microsoft Cognitive Services Emotion API
-     */
-    private class emotionDetectionTask extends AsyncTask<String, String, List<RecognizeResult>> {
-        private Exception e = null;
-        public emotionDetectionTask() {}
-
-        /**
-         * Calling the emotion client and sending the frame data.
-         * @param args
-         * @return results including emotions and their associated probability score on identified
-         * faces
-         */
-        @Override
-        protected List<RecognizeResult> doInBackground(String... args) {
-            try {
-                ByteArrayInputStream inputStream = new ByteArrayInputStream(outputArray);
-                List<RecognizeResult> result = emotionClient.recognizeImage(inputStream);
-                return result;
-            } catch (Exception e) {
-                this.e = e;    // Store error
-            }
-            return null;
-        }
-
-        /**
-         * On the completion of producing results with emotion client, storing emotion results
-         * of parent and child and adding to the cumulative vectors.
-         * @param result resulting list containing emotions and probability scores of each face.
-         */
-        @Override
-        protected void onPostExecute(List<RecognizeResult> result) {
-            super.onPostExecute(result);
-            // Display based on error existence
-            if (e != null) {
-                resultTextView.setText("Error, emotion detection: " + e.getMessage());
-                Log.e("Emotion detection ", e.getMessage());
-                this.e = null;
-            }
-            else if (result.size() == 1 && Data.isOnlyOneFace) {
-                float[] emotionVec = new float[8];
-                RecognizeResult r = result.get(0);
-
-                emotionVec[0] = (float)r.scores.anger;
-                emotionVec[1] = (float)r.scores.contempt;
-                emotionVec[2] = (float)r.scores.disgust;
-                emotionVec[3] = (float)r.scores.fear;
-                emotionVec[4] = (float)r.scores.happiness;
-                emotionVec[5] = (float)r.scores.neutral;
-                emotionVec[6] = (float)r.scores.sadness;
-                emotionVec[7] = (float)r.scores.surprise;
-
-                unknownEmotionVec = emotionVec;
-            }
-            else if (result.size() == 2 && Data.isIdentified) {
-                for (RecognizeResult r : result) {
-                    float x = r.faceRectangle.left + r.faceRectangle.width/2;
-                    float y = r.faceRectangle.top + r.faceRectangle.height/2;
-
-                    float[] emotionVec = new float[8];
-                    emotionVec[0] = (float)r.scores.anger;
-                    emotionVec[1] = (float)r.scores.contempt;
-                    emotionVec[2] = (float)r.scores.disgust;
-                    emotionVec[3] = (float)r.scores.fear;
-                    emotionVec[4] = (float)r.scores.happiness;
-                    emotionVec[5] = (float)r.scores.neutral;
-                    emotionVec[6] = (float)r.scores.sadness;
-                    emotionVec[7] = (float)r.scores.surprise;
-
-                    float sqrDistanceToParent = Math.abs(x-Data.Parent.x)*Math.abs(x-Data.Parent.x) +
-                            Math.abs(y-Data.Parent.y)*Math.abs(y-Data.Parent.y);
-                    float sqrDistanceToChild = Math.abs(x-Data.Child.x)*Math.abs(x-Data.Child.x) +
-                            Math.abs(y-Data.Child.y)*Math.abs(y-Data.Child.y);
-
-                    if(sqrDistanceToParent < sqrDistanceToChild){
-                        //Assigning emotion details to parent
-                        parentEmotionVec = emotionVec;
-                    }
-                    else{
-                        //Assigning emotion details to child
-                        childEmotionVec = emotionVec;
-                    }
-                }
-            }
-            else{
-                resultTextView.setText("Could not find two faces for emotion detection :(");
-                Log.e("Emotion detection ", " Could not find two faces'");
+                resultTextView.setText("Could not find faces for face detection:(");
+                Log.e("Face detection", "Could not find faces");
             }
             showResults(resultTextView);
         }
@@ -596,7 +550,7 @@ public class FeatureDetector extends Detector<Face> {
             resultText += "\nNO Emotions";
         }
         textView.setText(resultText);
-        Log.d("  ", resultText);
+        //Log.d("  ", resultText);
     }
 
     /**
